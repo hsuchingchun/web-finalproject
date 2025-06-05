@@ -1,0 +1,193 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+TC:wght@400;700&display=swap');
+
+#gameContainer {
+  width: 750px;
+  height: 500px;
+  position: relative;
+  background-image: url('https://i.postimg.cc/4dthzpTC/image.png');
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+  border: 6px solid #3c3c3c;
+  margin: 0 auto;
+  border-radius: 12px;
+  font-family: 'Press Start 2P', cursive;
+}
+
+.game-title {
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+  margin-top: 7px;
+  margin-bottom: 7px;
+}
+
+#timer,
+#score {
+  position: absolute;
+  top: 50px;
+  font-size: 25px;
+  font-weight: bold;
+  padding: 5px 12px;
+  background: none;
+  border-radius: 10px;
+  z-index: 2;
+  color: #fffacd;
+  text-shadow: 2px 2px #3c3c3c;
+}
+
+#timer {
+  left: 40px;
+}
+
+#score {
+  right: 40px;
+}
+
+.player {
+  position: absolute;
+  bottom: 10px;
+  width: 200px;
+  height: auto;
+  z-index: 2;
+}
+
+.pizza {
+  position: absolute;
+  width: 90px;
+  height: auto;
+  z-index: 2;
+}
+
+.chef {
+  position: absolute;
+  top: 110px;
+  right: 165px;
+  width: 200px;
+  height: auto;
+  z-index: 1;
+}
+
+/* 結果頁 */
+#resultScreen {
+  position: absolute;
+  top: 180px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fffbe0;
+  border: 2px solid #333;
+  padding: 20px;
+  border-radius: 12px;
+  z-index: 3;
+  text-align: center;
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 16px;
+  line-height: 1.8;
+  font-weight: bold;
+}
+
+/* 按鈕通用樣式 */
+#restartBtn,
+#introOverlay button {
+  margin-top: 10px;
+  padding: 6px 16px;
+  font-size: 16px;
+  background: #ffb84d;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* Intro 說明頁浮層 */
+#introOverlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(1.12); /* 小一點 */
+  width: 420px;
+  background: #fffbe0;
+  border: 2px solid #333;
+  padding: 20px;
+  border-radius: 12px;
+  z-index: 3;
+  text-align: center;
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 16px;
+  line-height: 1.8;
+  font-weight: bold;
+}
+
+.intro-title {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 20px;
+  margin-bottom: 5px;
+}
+
+.intro-sub {
+  font-size: 10px;
+  font-weight: bold;
+  color: #757575;
+  margin: 8px 0;
+  line-height: 1.8;
+}
+
+.intro-divider {
+  border: none;
+  border-top: 1px dashed #aaa;
+  margin: 10px auto;
+  width: 80%;
+}
+
+.intro-detail {
+  font-size: 12px;
+  font-weight: normal;
+  margin: 4px 0;
+}
+
+/* 效果文字通用樣式 */
+.effect {
+  position: absolute;
+  font-size: 24px;
+  font-weight: bold;
+  z-index: 5;
+  animation: fadeUp 0.3s ease-out forwards;
+}
+
+.effect.plus {
+  color: #FFD306;
+}
+
+.effect.minus {
+  color: #E0E0E0;
+}
+
+/* 結果頁數字樣式 */
+.result-num {
+  color: #FF7575;
+  font-size: 1.5em;
+  font-weight: bold;
+}
+
+/* 動畫 */
+@keyframes fadeUp {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+ 
