@@ -108,6 +108,8 @@ export default function Game() {
 
         // 嘗試接近 450 的食材
         const candidate = fallingFoods.find(f => Math.abs(f.y - 450) <= 20);
+        let foodCaught = false;
+
         if (candidate && skeweredFoods.length < 3) {
           setSkeweredFoods(prev => {
             const newFoods = [...prev, candidate];
@@ -117,7 +119,11 @@ export default function Game() {
             return newFoods;
           });
           setFallingFoods(prev => prev.filter(f => f.id !== candidate.id));
-        } else {
+          foodCaught = true;
+        }
+
+        // 如果沒有接到食材，顯示 Miss
+        if (!foodCaught) {
           // 先清除之前的 timeout
           if (missTimeout.current) {
             clearTimeout(missTimeout.current);
