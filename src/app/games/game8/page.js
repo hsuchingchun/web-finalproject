@@ -118,15 +118,17 @@ export default function Game() {
           });
           setFallingFoods(prev => prev.filter(f => f.id !== candidate.id));
         } else {
-          // 顯示 Miss 訊息
-          setShowMiss(true);
-          // 1秒後隱藏
+          // 先清除之前的 timeout
           if (missTimeout.current) {
             clearTimeout(missTimeout.current);
           }
+          // 顯示 Miss 訊息
+          setShowMiss(true);
+          // 0.5秒後隱藏
           missTimeout.current = setTimeout(() => {
             setShowMiss(false);
-          }, 1000);
+            missTimeout.current = null;
+          }, 500);
         }
 
         moveTimeout.current = setTimeout(() => {
@@ -144,8 +146,10 @@ export default function Game() {
     window.addEventListener("keydown", handleKeyPress);
     return () => {
       window.removeEventListener("keydown", handleKeyPress);
+      // 清理所有的 timeout
       if (missTimeout.current) {
         clearTimeout(missTimeout.current);
+        missTimeout.current = null;
       }
     };
   }, [fallingFoods, skeweredFoods, isMoving]);
@@ -255,11 +259,12 @@ export default function Game() {
         {/* Miss 提示 */}
         {showMiss && (
           <div 
-            className="absolute text-red-500 text-2xl font-bold"
+            className="absolute text-red-500 text-2xl font-bold animate-fade-out"
             style={{
               left: `${skewerPosition + 100}px`,
               top: "400px",
-              textShadow: "2px 2px 4px rgba(0,0,0,0.5)"
+              textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
+              animation: "fadeOut 0.5s ease-out forwards"
             }}
           >
             Miss!
@@ -329,6 +334,13 @@ export default function Game() {
           </div>
         )}
       </div>
+
+      <style jsx>{`
+        @keyframes fadeOut {
+          0% { opacity: 1; }
+          100% { opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }
