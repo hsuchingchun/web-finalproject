@@ -6,6 +6,9 @@ export default function Game7() {
   const router = useRouter();
   const [status, setStatus] = useState(0);
   const [isClient, setIsClient] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(15);
+  const [gameOver, setGameOver] = useState(false);
   
   // 初始化拼圖塊，每個拼圖塊都有唯一的ID
   const initialPieces = Array.from({ length: 9 }, (_, i) => ({
@@ -38,6 +41,30 @@ export default function Game7() {
     setPiecesInTray(shuffleArray(initialPieces));
   }, []);
 
+  useEffect(() => {
+    let timer;
+    if (gameStarted && timeLeft > 0 && !isComplete) {
+      timer = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            setGameOver(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [gameStarted, timeLeft, isComplete]);
+
+  const handleStartGame = () => {
+    setGameStarted(true);
+    setTimeLeft(15);
+    setGameOver(false);
+    setPiecesInTray(shuffleArray(initialPieces));
+    setBins(Array(9).fill(null));
+  };
+
   const handleFinish = () => {
     const delta = -1;
     const newStatus = status + delta;
@@ -52,6 +79,7 @@ export default function Game7() {
   };
 
   const handleDragStart = (e, source, piece) => {
+    if (!gameStarted || gameOver) return;
     e.dataTransfer.setData("text/plain", JSON.stringify({ source, piece }));
   };
 
@@ -60,6 +88,7 @@ export default function Game7() {
   };
 
   const handleDropInBin = (e, binIdx) => {
+    if (!gameStarted || gameOver) return;
     e.preventDefault();
     const data = JSON.parse(e.dataTransfer.getData("text/plain"));
     
@@ -73,29 +102,35 @@ export default function Game7() {
     } else if (data.source === "board") {
       setBins(prev => {
         const newBins = [...prev];
-        newBins[binIdx] = data.piece;
-        newBins[data.piece.value] = null;
+        // 找到被拖動的拼圖在九宮格中的位置
+        const sourceIdx = newBins.findIndex(p => p && p.id === data.piece.id);
+        if (sourceIdx !== -1) {
+          // 交換位置
+          const temp = newBins[binIdx];
+          newBins[binIdx] = data.piece;
+          newBins[sourceIdx] = temp;
+        }
         return newBins;
       });
     }
   };
 
   const handleDropInTray = (e) => {
+    if (!gameStarted || gameOver) return;
     e.preventDefault();
     const data = JSON.parse(e.dataTransfer.getData("text/plain"));
     
     if (data.source === "board") {
-      // Add timestamp to piece ID to ensure uniqueness
-      const pieceWithNewId = {
-        ...data.piece,
-        id: `${data.piece.id}-${Date.now()}`
-      };
-      setPiecesInTray(prev => [...prev, pieceWithNewId]);
+      // 找到被拖動的拼圖在九宮格中的位置
       setBins(prev => {
         const newBins = [...prev];
-        newBins[data.piece.value] = null;
+        const sourceIdx = newBins.findIndex(p => p && p.id === data.piece.id);
+        if (sourceIdx !== -1) {
+          newBins[sourceIdx] = null;
+        }
         return newBins;
       });
+      setPiecesInTray(prev => [...prev, data.piece]);
     }
   };
 
@@ -117,20 +152,53 @@ export default function Game7() {
     <main className="relative flex flex-col items-center justify-center min-h-screen bg-[#f0e6d2] p-4">
       <h1 className="text-2xl font-bold mb-8 text-[#4a4a4a] font-pixel">滑板game 考驗你的手眼協調</h1>
       
-      {isComplete && (
-        <>
-          <div className="fixed inset-0 bg-black/60 bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-[#98fb98] text-[#2e5a2e] rounded-lg border-4 border-[#2e5a2e] font-pixel shadow-lg p-8 transform scale-110">
-              <h2 className="text-xl font-bold mb-4">恭喜你完成，真是手眼協調好寶寶</h2>
-              <button 
-                className="w-full px-6 py-3 bg-[#2e5a2e] text-white rounded-lg border-2 border-[#1a3a1a] hover:bg-[#1a3a1a] font-pixel transition-transform hover:scale-105"
-                onClick={handleFinish}
-              >
-                返回首頁
-              </button>
-            </div>
+      {!gameStarted && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-[#98fb98] text-[#2e5a2e] rounded-lg border-4 border-[#2e5a2e] font-pixel shadow-lg p-8 transform scale-110 flex flex-col items-center">
+            <h2 className="text-xl font-bold mb-4 text-center">寫論文要眼明手快，手眼協調！</h2>
+            <h2 className="text-xl font-bold mb-4">請在15秒內完成滑板拼圖！</h2>
+            <button 
+              className="w-full px-6 py-3 bg-[#2e5a2e] text-white rounded-lg border-2 border-[#1a3a1a] hover:bg-[#1a3a1a] font-pixel transition-transform hover:scale-105"
+              onClick={handleStartGame}
+            >
+              開始遊戲
+            </button>
           </div>
-        </>
+        </div>
+      )}
+
+      {gameOver && !isComplete && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-[#ff6b6b] text-[#4a1a1a] rounded-lg border-4 border-[#4a1a1a] font-pixel shadow-lg p-8 transform scale-110">
+            <h2 className="text-xl font-bold mb-4">失敗！論文進度真堪憂呀</h2>
+            <button 
+              className="w-full px-6 py-3 bg-[#4a1a1a] text-white rounded-lg border-2 border-[#2a0a0a] hover:bg-[#2a0a0a] font-pixel transition-transform hover:scale-105"
+              onClick={handleStartGame}
+            >
+              重新開始
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {isComplete && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-[#98fb98] text-[#2e5a2e] rounded-lg border-4 border-[#2e5a2e] font-pixel shadow-lg p-8 transform scale-110">
+            <h2 className="text-xl font-bold mb-4">恭喜你完成，真是手眼協調好寶寶</h2>
+            <button 
+              className="w-full px-6 py-3 bg-[#2e5a2e] text-white rounded-lg border-2 border-[#1a3a1a] hover:bg-[#1a3a1a] font-pixel transition-transform hover:scale-105"
+              onClick={handleFinish}
+            >
+              返回首頁
+            </button>
+          </div>
+        </div>
+      )}
+
+      {gameStarted && !gameOver && (
+        <div className="absolute top-4 right-4 bg-[#4a4a4a] text-white px-4 py-2 rounded-lg font-pixel">
+          剩餘時間: {timeLeft} 秒
+        </div>
       )}
 
       <div className="flex flex-col md:flex-row gap-12">
@@ -147,9 +215,11 @@ export default function Game7() {
           {piecesInTray.map((piece) => (
             <div
               key={piece.id}
-              draggable
+              draggable={gameStarted && !gameOver}
               onDragStart={(e) => handleDragStart(e, "tray", piece)}
-              className="border-4 border-[#8b7355] cursor-move rounded-lg transform hover:scale-105 transition-transform duration-200 shadow-md"
+              className={`border-4 border-[#8b7355] rounded-lg transform transition-transform duration-200 shadow-md ${
+                gameStarted && !gameOver ? 'cursor-move hover:scale-105' : 'cursor-not-allowed'
+              }`}
               style={{
                 width: `${pieceSize}px`,
                 height: `${pieceSize}px`,
@@ -187,9 +257,11 @@ export default function Game7() {
                   {piece && (
                     <div
                       key={piece.id}
-                      draggable
+                      draggable={gameStarted && !gameOver}
                       onDragStart={(e) => handleDragStart(e, "board", piece)}
-                      className="w-full h-full cursor-move rounded-lg shadow-md"
+                      className={`w-full h-full rounded-lg shadow-md ${
+                        gameStarted && !gameOver ? 'cursor-move' : 'cursor-not-allowed'
+                      }`}
                       style={{
                         backgroundImage: `url(${imageUrl})`,
                         backgroundSize: `${imageSize}px ${imageSize}px`,

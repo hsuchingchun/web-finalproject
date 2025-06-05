@@ -2,62 +2,6 @@
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 
-import Image from "next/image";
-
-import gameName from "@/../public/game1images/gameName.png";
-import description from "@/../public/game1images/description.png";
-import enterBtn from "@/../public/game1images/enterBtn.png";
-import quitBtn from "@/../public/game1images/quitBtn.png";
-
-import rule from "@/../public/game1images/rule.png";
-import ruleAttack from "@/../public/game1images/ruleAttack.png";
-import nextBtn from "@/../public/game1images/nextBtn.png";
-import prevBtn from "@/../public/game1images/prevBtn.png";
-
-import ruleLife from "@/../public/game1images/ruleLife.png";
-import startBtn from "@/../public/game1images/startBtn.png";
-
-import player from "@/../public/game1images/player.png";
-import set from "@/../public/game1images/set.png";
-import receiver from "@/../public/game1images/receiver.png";
-
-import target from "@/../public/game1images/target.png";
-
-import spaceOnce from "@/../public/game1images/spaceOnce.png";
-import spaceRapidly from "@/../public/game1images/spaceRapidly.png";
-
-import attackState1 from "@/../public/game1images/attackState1.png";
-import attackState2 from "@/../public/game1images/attackState2.png";
-import attackState3 from "@/../public/game1images/attackState3.png";
-
-import powerBar00 from "@/../public/game1images/powerBar00.png";
-import powerBar01 from "@/../public/game1images/powerBar01.png";
-import powerBar02 from "@/../public/game1images/powerBar02.png";
-import powerBar03 from "@/../public/game1images/powerBar03.png";
-import powerBar04 from "@/../public/game1images/powerBar04.png";
-import powerBar05 from "@/../public/game1images/powerBar05.png";
-import powerBar06 from "@/../public/game1images/powerBar06.png";
-import powerBar07 from "@/../public/game1images/powerBar07.png";
-import powerBar08 from "@/../public/game1images/powerBar08.png";
-import powerBar09 from "@/../public/game1images/powerBar09.png";
-import powerBar10 from "@/../public/game1images/powerBar10.png";
-
-import life3 from "@/../public/game1images/life3.png";
-import life2 from "@/../public/game1images/life2.png";
-import life1 from "@/../public/game1images/life1.png";
-
-import timeIcon from "@/../public/game1images/timeIcon.png";
-
-import reactGOOD from "@/../public/game1images/reactGood.png";
-import reactOOPS from "@/../public/game1images/reactOops.png";
-
-import resultScore from "@/../public/game1images/resultScore.png";
-import resultSuccess from "@/../public/game1images/resultSuccess.png";
-import resultFail from "@/../public/game1images/resultFail.png";
-
-import restartBtn from "@/../public/game1images/restartBtn.png";
-import finishBtn from "@/../public/game1images/finishBtn.png";
-
 export default function Game1() {
   const router = useRouter();
   const [status, setStatus] = useState(0);
@@ -86,7 +30,7 @@ export default function Game1() {
   //下一階段
   const nextStage = () => {
     if (gameStage < 4) {
-      setGameStage(gameStage + 1)
+      setGameStage(gameStage + 1);
     }
   }
 
@@ -136,6 +80,9 @@ export default function Game1() {
     //如果時間到，下一關
     if (gameTime == 0) {
       nextStage();
+      setIsJumping(false);
+      setIsSpiking(false);
+      setPowering(false);
       if (score >= 500) {
         setSuccess(true);
       } else {
@@ -165,10 +112,10 @@ export default function Game1() {
   const [targetOpacity, setTargetOpacity] = useState(0); //紅色目標隱藏與否
 
   const [showReact, setShowReact] = useState(false); //控制react出現與否、要顯示哪一個react
-  const reactions = [reactGOOD, reactOOPS];
+  const reactions = ["/game1images/reactGOOD.png", "/game1images/reactOOPS.png"];
   const [selectedReact, setSelectedReact] = useState(0);
 
-  const attackStates = [attackState1, attackState2, attackState3]; //控制上方要顯示哪一個attack state
+  const attackStates = ["/game1images/attackState1.png", "/game1images/attackState2.png", "/game1images/attackState3.png"]; //控制上方要顯示哪一個attack state
 
 
   // 新階段，顯示防守球員
@@ -259,7 +206,7 @@ export default function Game1() {
   // 玩家操作區：跳躍
 
   //攻擊手跳躍動畫
-  const [isJumping, setIsJumping] = useState(true); //是否正在跳
+  const [isJumping, setIsJumping] = useState(false); //是否正在跳
   const [jumpDuration, setJumpDuration] = useState(0); //跳躍速度調節
 
   //速度調節
@@ -303,7 +250,7 @@ export default function Game1() {
   // 玩家操作區：扣球落點
 
   // 球左右跑動畫
-  const [isSpiking, setIsSpiking] = useState(true); //是否正在扣球
+  const [isSpiking, setIsSpiking] = useState(false); //是否正在扣球
   const [spikeDuration, setSpikeDuration] = useState(0); //調整球左右跑的速度
 
   useEffect(() => {
@@ -397,8 +344,9 @@ export default function Game1() {
   const [powerBarOpacity, setPowerBarOpacity] = useState(0);
 
   //載入 bar 們
-  const PowerBars = [powerBar00, powerBar01, powerBar02, powerBar03, powerBar04,
-    powerBar05, powerBar06, powerBar07, powerBar08, powerBar09, powerBar10];
+  const PowerBars = ["/game1images/powerBar00.png", "/game1images/powerBar01.png", "/game1images/powerBar02.png",
+    "/game1images/powerBar03.png", "/game1images/powerBar04.png", "/game1images/powerBar05.png", "/game1images/powerBar06.png",
+    "/game1images/powerBar07.png", "/game1images/powerBar08.png", "/game1images/powerBar09.png", "/game1images/powerBar10.png"];
 
   //設定應該顯示的 bar
   const [selectedPowerBar, setSelectedPowerBar] = useState([]);
@@ -488,11 +436,11 @@ export default function Game1() {
 
       {/* 主頁 */}
       <div className={`${gameStage == 0 ? "flex" : "hidden"} flex-col items-center justify-center w-full h-full`}>
-        <Image src={gameName} alt="" className="w-[400px] mb-20" />
-        <Image src={description} alt="" className="w-[400px] mb-16" />
-        <Image src={enterBtn} alt="" className="w-[100px] cursor-pointer mt-6
+        <img src="/game1images/gameName.png" alt="" className="w-[400px] mb-20" />
+        <img src="/game1images/description.png" alt="" className="w-[400px] mb-16" />
+        <img src="/game1images/enterBtn.png" alt="" className="w-[100px] cursor-pointer mt-6
                 hover:translate-y-0.5 transition-all" onClick={nextStage} />
-        <Image src={quitBtn} alt="" className="w-[100px] cursor-pointer mt-6
+        <img src="/game1images/quitBtn.png" alt="" className="w-[100px] cursor-pointer mt-6
                 hover:translate-y-0.5 transition-all" onClick={quitGame} />
       </div>
 
@@ -501,11 +449,11 @@ export default function Game1() {
       <div className={`${gameStage == 1 || gameStage == 2 ? "flex" : "hidden"} flex-col items-center justify-center w-full h-full`}>
         <div className="bg-[url('/game1images/ruleBg.png')] bg-no-repeat bg-contain bg-center
                 w-[1200px] h-[700px] flex flex-col justify-top items-center p-14">
-          <Image src={rule} alt="" className="w-[240px] mb-22" />
-          <Image src={gameStage == 1 ? ruleAttack : ruleLife} alt="" className="h-[260px] w-auto mb-26" />
+          <img src="/game1images/rule.png" alt="" className="w-[240px] mb-22" />
+          <img src={`${gameStage == 1 ? "/game1images/ruleAttack.png" : "/game1images/ruleLife.png"}`} alt="" className="h-[260px] w-auto mb-26" />
           <div className="flex justify-center items-center gap-10">
-            <Image src={prevBtn} alt="" className="w-[100px] cursor-pointer hover:translate-y-0.5 transition-all" onClick={prevStage} />
-            <Image src={gameStage == 1 ? nextBtn : startBtn} alt="" className="w-[100px] cursor-pointer hover:translate-y-0.5 transition-all" onClick={nextStage} />
+            <img src="/game1images/prevBtn.png" alt="" className="w-[100px] cursor-pointer hover:translate-y-0.5 transition-all" onClick={prevStage} />
+            <img src={`${gameStage == 1 ? "/game1images/nextBtn.png" : "/game1images/startBtn.png"}`} alt="" className="w-[100px] cursor-pointer hover:translate-y-0.5 transition-all" onClick={nextStage} />
           </div>
         </div>
       </div>
@@ -545,7 +493,7 @@ export default function Game1() {
 
             {/* time */}
             <div className="flex justify-center items-center gap-4">
-              <Image src={timeIcon} alt="" className="w-[24px]" />
+              <img src="/game1images/timeIcon.png" alt="" className="w-[24px]" />
               <div className="text-2xl text-[#504a50]" style={{ fontFamily: 'Silkscreen, sans-serif' }}>
                 {gameTime >= 10 ? gameTime : "0" + gameTime}
               </div>
@@ -555,9 +503,9 @@ export default function Game1() {
 
             {/* life */}
             <div className="flex justify-center items-center">
-              {life == 3 && <Image src={life3} alt="" className="w-[90px]" />}
-              {life == 2 && <Image src={life2} alt="" className="w-[90px]" />}
-              {life == 1 && <Image src={life1} alt="" className="w-[90px]" />}
+              {life == 3 && <img src="/game1images/life3.png" alt="" className="w-[90px]" />}
+              {life == 2 && <img src="/game1images/life2.png" alt="" className="w-[90px]" />}
+              {life == 1 && <img src="/game1images/life1.png" alt="" className="w-[90px]" />}
             </div>
           </div>
         </div>
@@ -567,7 +515,7 @@ export default function Game1() {
 
           {/* react */}
           <div className="flex absolute top-2 right-2 z-10">
-            <Image src={reactions[selectedReact]} alt="" className={`h-[40px] w-auto ${showReact ? "flex" : "hidden"}`}
+            <img src={`${reactions[selectedReact]}`} alt="" className={`h-[40px] w-auto ${showReact ? "flex" : "hidden"}`}
               style={{
                 animationName: 'playReaction',
                 animationDuration: `1s`,
@@ -577,7 +525,7 @@ export default function Game1() {
 
           {/* state */}
           <div>
-            <Image src={attackStates[attackState - 1]} className="w-[300px] mt-[30px] mb-[50px]" />
+            <img src={attackStates[attackState - 1]} className="w-[300px] mt-[30px] mb-[50px]" />
           </div>
 
           {/* 場地內 */}
@@ -586,11 +534,11 @@ export default function Game1() {
             {/* 防守球員區 */}
             <div className="w-full h-[12%] flex justify-center items-end">
               <div className="flex w-[60%] justify-between">
-                <Image src={receiver} ref={receiverRef0}
+                <img src="/game1images/receiver.png" ref={receiverRef0}
                   className={`w-[50px] transition-all duration-[0.5s] ${getOpacity(0)}`} />  {/* 第0張圖 */}
-                <Image src={receiver} ref={receiverRef1}
+                <img src="/game1images/receiver.png" ref={receiverRef1}
                   className={`w-[50px] transition-all duration-[0.5s] ${getOpacity(1)}`} />  {/* 第1張圖 */}
-                <Image src={receiver} ref={receiverRef2}
+                <img src="/game1images/receiver.png" ref={receiverRef2}
                   className={`w-[50px] transition-all duration-[0.5s] ${getOpacity(2)}`} />  {/* 第2張圖 */}
               </div>
             </div>
@@ -600,7 +548,7 @@ export default function Game1() {
               <div className="flex w-[70%]">
 
                 {/* 球員 */}
-                <Image src={player} ref={jumpRef} alt="" className="w-[60px] translate-y-[20px] z-10"
+                <img src="/game1images/player.png" ref={jumpRef} alt="" className="w-[60px] translate-y-[20px] z-10"
                   style={{
                     animationName: 'jump',
                     animationDuration: `${jumpDuration}s`,
@@ -610,7 +558,7 @@ export default function Game1() {
                   }} />
 
                 {/* 球 */}
-                <Image src={target} alt="" className={`w-[28px] h-[28px] translate-x-[20px] -translate-y-[70px] opacity-${targetOpacity}`}
+                <img src="/game1images/target.png" alt="" className={`w-[28px] h-[28px] translate-x-[20px] -translate-y-[70px] opacity-${targetOpacity}`}
                   ref={targetRef}
                   style={{
                     animationName: 'spike',
@@ -624,7 +572,7 @@ export default function Game1() {
 
               {/* 舉球員 */}
               <div className="flex w-[10%]">
-                <Image src={set} alt="" className="w-[40px]" />
+                <img src="/game1images/set.png" alt="" className="w-[40px]" />
               </div>
 
             </div>
@@ -632,7 +580,7 @@ export default function Game1() {
             {/* power bar */}
             <div className={`w-full h-[44%] flex flex-col justify-center items-center opacity-${powerBarOpacity}`}>
               <div className="text-white px-2 w-[80%]" style={{ fontFamily: 'Silkscreen, sans-serif' }}>power</div>
-              <Image src={selectedPowerBar} alt="" className="w-[80%]" />
+              <img src={selectedPowerBar} alt="" className="w-[80%]" />
             </div>
           </div>
 
@@ -640,7 +588,7 @@ export default function Game1() {
 
         {/* space */}
         <div className="w-full h-[15vh] flex flex-col items-center">
-          <Image src={attackState == 3 ? spaceRapidly : spaceOnce} alt="space" className="w-[300px]" />
+          <img src={`${attackState == 3 ? "/game1images/spaceRapidly.png" : "/game1images/spaceOnce.png"}`} alt="space" className="w-[300px]" />
           <div className={`w-[300px] opacity-0 text-[#CD4447] flex justify-end ${attackState == 3 ? flexPowerTime : ""}`}
             style={{ fontFamily: 'Silkscreen, sans-serif' }}>
             in {powerTime} sec
@@ -652,19 +600,19 @@ export default function Game1() {
       {/* 結果頁 */}
       <div className={`${gameStage == 4 ? "flex" : "hidden"} flex-col items-center justify-center w-full h-full gap-16`}>
 
-        <Image src={gameName} alt="" className="w-[400px]" />
+        <img src="/game1images/gameName.png" alt="" className="w-[400px]" />
 
         <div className="flex flex-col items-center">
-          <Image src={resultScore} alt="" className="w-[120px]" />
+          <img src="/game1images/resultScore.png" alt="" className="w-[120px]" />
           <div className="text-[#504a50] text-6xl" style={{ fontFamily: 'Silkscreen, sans-serif' }}>{score}</div>
         </div>
 
-        <Image src={success ? resultSuccess : resultFail} alt="" className="w-[400px]" />
+        <img src={`${success ? "/game1images/resultSuccess.png" : "/game1images/resultFail.png"}`} alt="" className="w-[400px]" />
 
         <div>
-          <Image src={restartBtn} alt="" className="w-[100px] cursor-pointer mt-6 hover:translate-y-0.5 transition-all" onClick={resetStage} />
+          <img src="/game1images/restartBtn.png" alt="" className="w-[100px] cursor-pointer mt-6 hover:translate-y-0.5 transition-all" onClick={resetStage} />
 
-          <Image src={success ? finishBtn : quitBtn} alt="" className="w-[100px] cursor-pointer mt-6 hover:translate-y-0.5 transition-all"
+          <img src={`${success ? "/game1images/finishBtn.png" : "/game1images/quitBtn.png"}`} alt="" className="w-[100px] cursor-pointer mt-6 hover:translate-y-0.5 transition-all"
             onClick={success ? handleFinish : quitGame} />
         </div>
       </div>
