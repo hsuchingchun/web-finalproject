@@ -102,8 +102,14 @@ export default function Game7() {
     } else if (data.source === "board") {
       setBins(prev => {
         const newBins = [...prev];
-        newBins[binIdx] = data.piece;
-        newBins[data.piece.value] = null;
+        // 找到被拖動的拼圖在九宮格中的位置
+        const sourceIdx = newBins.findIndex(p => p && p.id === data.piece.id);
+        if (sourceIdx !== -1) {
+          // 交換位置
+          const temp = newBins[binIdx];
+          newBins[binIdx] = data.piece;
+          newBins[sourceIdx] = temp;
+        }
         return newBins;
       });
     }
@@ -115,16 +121,16 @@ export default function Game7() {
     const data = JSON.parse(e.dataTransfer.getData("text/plain"));
     
     if (data.source === "board") {
-      const pieceWithNewId = {
-        ...data.piece,
-        id: `${data.piece.id}-${Date.now()}`
-      };
-      setPiecesInTray(prev => [...prev, pieceWithNewId]);
+      // 找到被拖動的拼圖在九宮格中的位置
       setBins(prev => {
         const newBins = [...prev];
-        newBins[data.piece.value] = null;
+        const sourceIdx = newBins.findIndex(p => p && p.id === data.piece.id);
+        if (sourceIdx !== -1) {
+          newBins[sourceIdx] = null;
+        }
         return newBins;
       });
+      setPiecesInTray(prev => [...prev, data.piece]);
     }
   };
 
@@ -148,8 +154,9 @@ export default function Game7() {
       
       {!gameStarted && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[#98fb98] text-[#2e5a2e] rounded-lg border-4 border-[#2e5a2e] font-pixel shadow-lg p-8 transform scale-110">
-            <h2 className="text-xl font-bold mb-4">寫論文要眼明手快，請在15秒內完成滑板拼圖！</h2>
+          <div className="bg-[#98fb98] text-[#2e5a2e] rounded-lg border-4 border-[#2e5a2e] font-pixel shadow-lg p-8 transform scale-110 flex flex-col items-center">
+            <h2 className="text-xl font-bold mb-4 text-center">寫論文要眼明手快，手眼協調！</h2>
+            <h2 className="text-xl font-bold mb-4">請在15秒內完成滑板拼圖！</h2>
             <button 
               className="w-full px-6 py-3 bg-[#2e5a2e] text-white rounded-lg border-2 border-[#1a3a1a] hover:bg-[#1a3a1a] font-pixel transition-transform hover:scale-105"
               onClick={handleStartGame}
