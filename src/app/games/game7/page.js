@@ -163,7 +163,7 @@ export default function Game7() {
       {gameOver && !isComplete && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-[#ff6b6b] text-[#4a1a1a] rounded-lg border-4 border-[#4a1a1a] font-pixel shadow-lg p-8 transform scale-110">
-            <h2 className="text-xl font-bold mb-4">失敗！論文真令人堪憂</h2>
+            <h2 className="text-xl font-bold mb-4">失敗！論文進度真堪憂呀</h2>
             <button 
               className="w-full px-6 py-3 bg-[#4a1a1a] text-white rounded-lg border-2 border-[#2a0a0a] hover:bg-[#2a0a0a] font-pixel transition-transform hover:scale-105"
               onClick={handleStartGame}
