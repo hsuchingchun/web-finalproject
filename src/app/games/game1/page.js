@@ -30,7 +30,7 @@ export default function Game1() {
   //下一階段
   const nextStage = () => {
     if (gameStage < 4) {
-      setGameStage(gameStage + 1)
+      setGameStage(gameStage + 1);
     }
   }
 
@@ -80,6 +80,9 @@ export default function Game1() {
     //如果時間到，下一關
     if (gameTime == 0) {
       nextStage();
+      setIsJumping(false);
+      setIsSpiking(false);
+      setPowering(false);
       if (score >= 500) {
         setSuccess(true);
       } else {
@@ -203,7 +206,7 @@ export default function Game1() {
   // 玩家操作區：跳躍
 
   //攻擊手跳躍動畫
-  const [isJumping, setIsJumping] = useState(true); //是否正在跳
+  const [isJumping, setIsJumping] = useState(false); //是否正在跳
   const [jumpDuration, setJumpDuration] = useState(0); //跳躍速度調節
 
   //速度調節
@@ -247,7 +250,7 @@ export default function Game1() {
   // 玩家操作區：扣球落點
 
   // 球左右跑動畫
-  const [isSpiking, setIsSpiking] = useState(true); //是否正在扣球
+  const [isSpiking, setIsSpiking] = useState(false); //是否正在扣球
   const [spikeDuration, setSpikeDuration] = useState(0); //調整球左右跑的速度
 
   useEffect(() => {
