@@ -85,7 +85,12 @@ export default function Game7() {
     const data = JSON.parse(e.dataTransfer.getData("text/plain"));
     
     if (data.source === "board") {
-      setPiecesInTray(prev => [...prev, data.piece]);
+      // Add timestamp to piece ID to ensure uniqueness
+      const pieceWithNewId = {
+        ...data.piece,
+        id: `${data.piece.id}-${Date.now()}`
+      };
+      setPiecesInTray(prev => [...prev, pieceWithNewId]);
       setBins(prev => {
         const newBins = [...prev];
         newBins[data.piece.value] = null;
