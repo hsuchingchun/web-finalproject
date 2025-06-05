@@ -115,7 +115,7 @@ export default function PizzaGame() {
 
   return (
     <div>
-      <h2 style={{ textAlign: 'center' }}>✨🍕 30 秒接披薩挑戰！每一片都要有肉腸！🍕✨</h2>
+      <h2 className="game-title">✨🍕 30 秒接披薩挑戰！每一片都要有肉腸！🍕✨</h2>
       <div id="gameContainer" ref={gameRef}>
         <div id="timer" className="pixel">TIME:{timeLeft}</div>
         <div id="score" className="pixel">SCORE:{score}</div>
@@ -146,7 +146,7 @@ export default function PizzaGame() {
             <p>
               {score >= 70
                 ? '大滿足！回去寫論文！😇 ❤️'
-                : '不寫了！我就延畢！😠 💥'}
+                : '不寫了！我就延畢！😠💥'}
             </p>
             <button id="restartBtn" onClick={() => window.location.reload()}>
               再吃一回
@@ -157,6 +157,7 @@ export default function PizzaGame() {
     </div>
   );
 }
+
 
 
 
