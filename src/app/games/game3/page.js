@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
 const ReactP5Wrapper = dynamic(
-  () => import("react-p5-wrapper").then((mod) => mod.ReactP5Wrapper),
+  () => import("@p5-wrapper/react").then((mod) => mod.ReactP5Wrapper),
   { ssr: false }
 );
 
