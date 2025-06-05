@@ -14,8 +14,8 @@ export default function IceCreamCatchGame() {
     { type: "normal", score: 1, image: "/game12/icecream1.png" },
     { type: "high", score: 3, image: "/game12/icecream2.png" },
     { type: "bad", score: -4, image: "/game12/bittermelon.png" },
-    { type: "high", score: 3, image: "/game12/icecream3.png" },
-    { type: "normal", score: 1, image: "/game12/icecream4.png" },
+    { type: "high", score: 3, image: "/game12/icecream4.png" },
+    { type: "normal", score: 1, image: "/game12/icecream3.png" },
   ];
 
   // Intro 狀態
@@ -373,7 +373,7 @@ export default function IceCreamCatchGame() {
             onClick={restartGame}
             style={{
               width: "100%",
-              maxWidth: 320,
+              maxWidth: 400,
               padding: "14px 20px",
               fontSize: 22,
               fontFamily: "Aura",
@@ -394,7 +394,7 @@ export default function IceCreamCatchGame() {
             onClick={handleFinish}
             style={{
               width: "100%",
-              maxWidth: 320,
+              maxWidth: 400,
               padding: "14px 20px",
               fontSize: 22,
               fontFamily: "Aura",
@@ -418,6 +418,35 @@ export default function IceCreamCatchGame() {
   // Intro
   function renderIntro() {
     if (!showIntro) return null;
+    const aqua = "#6fbcc5";
+    const circleStyle = {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: 28,
+      height: 28,
+      borderRadius: "50%",
+      background: aqua,
+      color: "#fff",
+      fontWeight: "bold",
+      fontSize: 20,
+      marginRight: 10,
+      verticalAlign: "middle",
+      flexShrink: 0,
+      fontFamily: "Aura",
+    };
+
+    // 圖片icon樣式
+    const iconStyle = {
+      width: 30,
+      height: 30,
+      margin: "0 5px -5px 0",
+      objectFit: "contain",
+      display: "inline-block",
+      verticalAlign: "middle",
+      userSelect: "none",
+    };
+
     return (
       <div
         style={{
@@ -430,13 +459,12 @@ export default function IceCreamCatchGame() {
           justifyContent: "center",
         }}
       >
-        {/* flex column 包住規則+按鈕 */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: 24, // 兩塊之間 24px
+            gap: 24,
           }}
         >
           <div
@@ -445,26 +473,126 @@ export default function IceCreamCatchGame() {
               background: "#F4F4EB",
               borderRadius: 24,
               boxShadow: "0 0 40px #0005",
-              padding: "32px 24px 20px 24px",
-              minWidth: 320,
-              maxWidth: 420,
-              textAlign: "center",
+              padding: "48px 40px 48px 40px",
+              minWidth: 480,
+              maxWidth: 580,
+              textAlign: "left",
               fontSize: 22,
               lineHeight: 1.5,
               color: "#222",
               position: "relative",
             }}
           >
-            <div style={{ fontWeight: "bold", fontSize: 28, marginBottom: 14 }}>
+            <div
+              style={{
+                fontWeight: "bold",
+                fontSize: 28,
+                textAlign: "center",
+                marginBottom: 14,
+              }}
+            >
               遊戲規則說明
             </div>
-            <div style={{ marginBottom: 18, whiteSpace: "pre-line" }}>
-              讓小明吃足夠冰淇淋，吃到分數40分就心滿意足，過程中會有苦瓜，小心不要讓他吃到了！
-              <br />
-              <br />
-              人物操作方式：方向鍵 &larr; &rarr;
+
+            <div
+              style={{
+                marginBottom: 18,
+                display: "flex",
+                alignItems: "flex-start",
+              }}
+            >
+              <span style={circleStyle}>1</span>
+              <span>
+                讓小明吃足夠冰淇淋，吃到分數40分就心滿意足遊戲結束，過程中會有
+                <img
+                  src="/game12/bittermelon.png"
+                  alt="苦瓜"
+                  style={{ ...iconStyle, margin: "0 0px 0px 4px" }}
+                />
+                苦瓜，小心不要讓他吃到了！
+              </span>
+            </div>
+
+            <div
+              style={{
+                marginBottom: 18,
+                display: "flex",
+                alignItems: "flex-start",
+              }}
+            >
+              <span style={circleStyle}>2</span>
+              <span>
+                只要小明沒吃到冰淇淋，或是吃到苦瓜，都會累積不滿意分數
+                <img
+                  src="/game12/player_angry.png"
+                  alt="不滿意"
+                  style={{ ...iconStyle, margin: "0 0px 0px 4px" }}
+                />
+                ，累計五次不滿意分數或分數負分則遊戲結束。
+              </span>
+            </div>
+
+            <div
+              style={{
+                marginBottom: 0,
+                display: "flex",
+                alignItems: "flex-start",
+              }}
+            >
+              <span style={circleStyle}>3</span>
+              <span>
+                人物操作方式：方向鍵
+                <img
+                  src="/game12/left.png"
+                  alt="左鍵"
+                  style={{
+                    width: 36,
+                    height: 36,
+                    margin: "0 6px 0px 12px",
+                    verticalAlign: "middle",
+                    userSelect: "none",
+                    display: "inline-block",
+                  }}
+                  draggable={false}
+                />
+                <img
+                  src="/game12/right.png"
+                  alt="右鍵"
+                  style={{
+                    width: 36,
+                    height: 36,
+                    margin: "0 0px 0px 2px",
+                    verticalAlign: "middle",
+                    userSelect: "none",
+                    display: "inline-block",
+                  }}
+                  draggable={false}
+                />
+                <br />
+                <span style={{ display: "inline-flex", alignItems: "center" }}>
+                  <img
+                    src="/game12/icecream2.png"
+                    alt="冰淇淋"
+                    style={iconStyle}
+                  />
+                  冰淇淋：+3　
+                  <img
+                    src="/game12/icecream1.png"
+                    alt="冰棒"
+                    style={iconStyle}
+                  />
+                  冰棒：+1　
+                  <img
+                    src="/game12/bittermelon.png"
+                    alt="苦瓜"
+                    style={iconStyle}
+                  />
+                  苦瓜：-4
+                </span>
+              </span>
             </div>
           </div>
+
           {/* space 按鈕（下方） */}
           <div
             style={{
