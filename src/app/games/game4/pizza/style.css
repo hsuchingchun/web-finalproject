@@ -71,7 +71,7 @@
 /* 結果頁 */
 #resultScreen {
   position: absolute;
-  top: 180px;
+  top: 160px;
   left: 50%;
   transform: translateX(-50%);
   background: #fffbe0;
@@ -89,14 +89,22 @@
 /* 按鈕通用樣式 */
 #restartBtn,
 #introOverlay button {
-  margin-top: 10px;
+  margin-top: 15px;
   padding: 6px 16px;
-  font-size: 16px;
+  font-size: 14px;
   background: #ffb84d;
   border: none;
-  border-radius: 8px;
+  border-radius: 20px;
   cursor: pointer;
   font-weight: bold;
+}
+
+#restartBtn:hover,
+#introOverlay button:hover {
+  background: #febd5b;
+  box-shadow: 0 0 2px #e8a652;
+  transform: scale(1.01);
+  transition: all 0.1s ease;
 }
 
 /* Intro 說明頁浮層 */
@@ -125,7 +133,7 @@
 }
 
 .intro-sub {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: bold;
   color: #757575;
   margin: 8px 0;
@@ -140,8 +148,8 @@
 }
 
 .intro-detail {
-  font-size: 12px;
-  font-weight: normal;
+  font-size: 12.5px;
+  font-weight: bold;
   margin: 4px 0;
 }
 
@@ -180,6 +188,7 @@
     transform: translateY(-20px);
   }
 }
+
 
 
 
