@@ -18,6 +18,9 @@ export default function IceCreamCatchGame() {
     { type: "normal", score: 1, image: "/game12/icecream4.png" },
   ];
 
+  // Intro 狀態
+  const [showIntro, setShowIntro] = useState(true);
+
   const [windowSize, setWindowSize] = useState({
     width: typeof window !== "undefined" ? window.innerWidth : 400,
     height: typeof window !== "undefined" ? window.innerHeight : 600,
@@ -29,9 +32,22 @@ export default function IceCreamCatchGame() {
   const [gameOver, setGameOver] = useState(false);
   const [gameFinish, setGameFinish] = useState(false);
   const [isEating, setIsEating] = useState(false);
+  const [isAngry, setIsAngry] = useState(false);
   const keysPressed = useRef({});
 
   const router = useRouter();
+
+  // 按 SPACE 開始
+  useEffect(() => {
+    if (!showIntro) return;
+    function handleKeyDown(e) {
+      if (e.code === "Space" || e.key === " ") {
+        setShowIntro(false);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showIntro]);
 
   function getRandomIceCreamX() {
     const slotSize = 32;
@@ -70,7 +86,7 @@ export default function IceCreamCatchGame() {
 
   // 定時產生新冰淇淋
   useEffect(() => {
-    if (gameOver || gameFinish) return;
+    if (gameOver || gameFinish || showIntro) return;
     const spawner = setInterval(() => {
       const typeIdx = Math.floor(Math.random() * iceCreamTypes.length);
       const type = iceCreamTypes[typeIdx];
@@ -85,11 +101,11 @@ export default function IceCreamCatchGame() {
       ]);
     }, 1100);
     return () => clearInterval(spawner);
-  }, [gameOver, gameFinish, windowSize.width, windowSize.height]);
+  }, [gameOver, gameFinish, windowSize.width, windowSize.height, showIntro]);
 
   // 主遊戲 mover
   useEffect(() => {
-    if (gameOver || gameFinish) return;
+    if (gameOver || gameFinish || showIntro) return;
     const mover = setInterval(() => {
       setPlayerX((x) => {
         let nx = x;
@@ -112,24 +128,25 @@ export default function IceCreamCatchGame() {
             ice.type.type === "high" ? baseFallSpeed * 1.5 : baseFallSpeed;
           const newY = ice.y + fall;
 
-          // 檢查碰撞
+          // 碰撞
           if (
             newY + iceCreamSize >= windowSize.height - playerHeight &&
             ice.x + iceCreamSize >= playerX &&
             ice.x <= playerX + playerWidth
           ) {
-            setIsEating(true);
-            setTimeout(() => setIsEating(false), 500);
-
             nextScore += ice.type.score;
-            // 吃到苦瓜（bad）也算一次 miss
             if (ice.type.type === "bad") {
               nextMiss += 1;
+              setIsAngry(true);
+              setTimeout(() => setIsAngry(false), 500);
+            } else {
+              setIsEating(true);
+              setTimeout(() => setIsEating(false), 500);
             }
             continue;
           }
 
-          // 沒接到且剛掉出去（只判斷一次）
+          // 沒接到且剛掉出去
           if (ice.y <= windowSize.height && newY > windowSize.height) {
             if (ice.type.score > 0) {
               nextMiss += 1;
@@ -181,6 +198,7 @@ export default function IceCreamCatchGame() {
     maxMissCount,
     score,
     missCount,
+    showIntro,
   ]);
 
   // 回主頁，只有破關才+1
@@ -201,26 +219,41 @@ export default function IceCreamCatchGame() {
     setPlayerX(windowSize.width / 2 - playerWidth / 2);
     setIceCreams([]);
     setIsEating(false);
+    setIsAngry(false);
   }
 
   // Score UI - 左上角
   function renderScoreUI() {
     return (
       <div
-        className="font-aura"
         style={{
+          fontFamily: "Aura",
           position: "fixed",
           top: 24,
           left: 24,
           zIndex: 100,
           background: "rgba(255,255,255,0.7)",
           borderRadius: 10,
-          padding: "6px 20px",
+          padding: "6px 22px 6px 10px",
           fontSize: 28,
           fontWeight: "bold",
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
         }}
       >
-        Score: {score}
+        <img
+          src="/game12/score.png"
+          alt="score"
+          style={{
+            width: 45,
+            height: 45,
+            marginRight: 7,
+            verticalAlign: "middle",
+          }}
+          draggable={false}
+        />
+        <span>score: {score}</span>
       </div>
     );
   }
@@ -299,8 +332,8 @@ export default function IceCreamCatchGame() {
         }}
       >
         <div
-          className="font-aura"
           style={{
+            fontFamily: "Aura",
             boxShadow: "0 0 32px #bbb6",
             borderRadius: 24,
             background: bgColor,
@@ -343,12 +376,16 @@ export default function IceCreamCatchGame() {
               maxWidth: 320,
               padding: "14px 20px",
               fontSize: 22,
+              fontFamily: "Aura",
+              border: "4px solid #fffab0",
               borderRadius: 12,
-              border: "none",
-              backgroundColor: "#4CAF50",
+              boxShadow: "0 0 16px 3px #ffe77788",
+              background: "transparent",
               color: "white",
               cursor: "pointer",
               marginBottom: 18,
+              fontWeight: "bold",
+              letterSpacing: "1.2px",
             }}
           >
             重新開始遊戲
@@ -360,11 +397,15 @@ export default function IceCreamCatchGame() {
               maxWidth: 320,
               padding: "14px 20px",
               fontSize: 22,
+              fontFamily: "Aura",
+              border: "4px solid #fffab0",
               borderRadius: 12,
-              border: "none",
-              backgroundColor: "#1976d2",
+              boxShadow: "0 0 16px 3px #ffe77788",
+              background: "transparent",
               color: "white",
               cursor: "pointer",
+              fontWeight: "bold",
+              letterSpacing: "1.2px",
             }}
           >
             回到主頁
@@ -374,22 +415,103 @@ export default function IceCreamCatchGame() {
     );
   }
 
+  // Intro
+  function renderIntro() {
+    if (!showIntro) return null;
+    return (
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.48)",
+          zIndex: 10000,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {/* flex column 包住規則+按鈕 */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 24, // 兩塊之間 24px
+          }}
+        >
+          <div
+            style={{
+              fontFamily: "Aura",
+              background: "#F4F4EB",
+              borderRadius: 24,
+              boxShadow: "0 0 40px #0005",
+              padding: "32px 24px 20px 24px",
+              minWidth: 320,
+              maxWidth: 420,
+              textAlign: "center",
+              fontSize: 22,
+              lineHeight: 1.5,
+              color: "#222",
+              position: "relative",
+            }}
+          >
+            <div style={{ fontWeight: "bold", fontSize: 28, marginBottom: 14 }}>
+              遊戲規則說明
+            </div>
+            <div style={{ marginBottom: 18, whiteSpace: "pre-line" }}>
+              讓小明吃足夠冰淇淋，吃到分數40分就心滿意足，過程中會有苦瓜，小心不要讓他吃到了！
+              <br />
+              <br />
+              人物操作方式：方向鍵 &larr; &rarr;
+            </div>
+          </div>
+          {/* space 按鈕（下方） */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
+            <span
+              style={{
+                padding: "10px 30px",
+                borderRadius: 14,
+                border: "3px solid #fffab0",
+                boxShadow: "0 0 12px 3px #ffe77788",
+                background: "rgba(0,0,0,0)",
+                color: "#fff",
+                fontFamily: "Aura",
+                fontSize: 28,
+                letterSpacing: "1.2px",
+                fontWeight: "bold",
+              }}
+            >
+              按{" "}
+              <span
+                style={{
+                  display: "inline-block",
+                  background: "#fff",
+                  color: "#222",
+                  borderRadius: 8,
+                  padding: "0 10px",
+                  margin: "0 5px",
+                  fontSize: 32,
+                  fontWeight: "bold",
+                  boxShadow: "0 0 4px #fff",
+                }}
+              >
+                SPACE
+              </span>{" "}
+              開始遊戲
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
-      {/* 字體註冊 */}
-      <style jsx global>{`
-        @font-face {
-          font-family: "Aura";
-          src: url("/fonts/aura.ttf") format("truetype");
-          font-display: swap;
-        }
-        .font-aura {
-          font-family: "Aura", "Noto Sans TC", "Microsoft JhengHei", Arial,
-            sans-serif !important;
-          letter-spacing: 1.2px;
-        }
-      `}</style>
-
       {/* 全螢幕背景 */}
       <img
         src="/game12/bg.png"
@@ -414,65 +536,76 @@ export default function IceCreamCatchGame() {
       {/* 右上角 missCount */}
       {renderMissUI()}
 
+      {/* 說明畫面 */}
+      {renderIntro()}
+
       {/* overlay dialog */}
       {renderOverlayDialog()}
 
       {/* 遊戲主體 */}
-      <div
-        tabIndex={0}
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100vw",
-          height: "100vh",
-          outline: "none",
-          zIndex: 1,
-          backgroundColor: "transparent",
-          overflow: "hidden",
-        }}
-      >
-        {!gameOver && !gameFinish && (
-          <>
-            {/* 玩家圖片 */}
-            <img
-              src={isEating ? "/game12/player_eat.png" : "/game12/player.png"}
-              alt="主角"
-              style={{
-                position: "absolute",
-                bottom: 0,
-                left: playerX,
-                width: playerWidth,
-                height: playerHeight,
-                zIndex: 2,
-                userSelect: "none",
-                pointerEvents: "none",
-              }}
-              draggable={false}
-            />
-
-            {/* 多顆冰淇淋 */}
-            {iceCreams.map((ice) => (
+      {!showIntro && (
+        <div
+          tabIndex={0}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            outline: "none",
+            zIndex: 1,
+            backgroundColor: "transparent",
+            overflow: "hidden",
+          }}
+        >
+          {!gameOver && !gameFinish && (
+            <>
+              {/* 玩家圖片 */}
               <img
-                key={ice.id}
-                src={ice.type.image}
-                alt="冰淇淋"
+                src={
+                  isAngry
+                    ? "/game12/player_angry.png"
+                    : isEating
+                    ? "/game12/player_eat.png"
+                    : "/game12/player.png"
+                }
+                alt="主角"
                 style={{
                   position: "absolute",
-                  top: ice.y,
-                  left: ice.x,
-                  width: iceCreamSize,
-                  height: iceCreamSize,
+                  bottom: 0,
+                  left: playerX,
+                  width: playerWidth,
+                  height: playerHeight,
                   zIndex: 2,
                   userSelect: "none",
                   pointerEvents: "none",
                 }}
                 draggable={false}
               />
-            ))}
-          </>
-        )}
-      </div>
+
+              {/* 多顆冰淇淋 */}
+              {iceCreams.map((ice) => (
+                <img
+                  key={ice.id}
+                  src={ice.type.image}
+                  alt="冰淇淋"
+                  style={{
+                    position: "absolute",
+                    top: ice.y,
+                    left: ice.x,
+                    width: iceCreamSize,
+                    height: iceCreamSize,
+                    zIndex: 2,
+                    userSelect: "none",
+                    pointerEvents: "none",
+                  }}
+                  draggable={false}
+                />
+              ))}
+            </>
+          )}
+        </div>
+      )}
     </>
   );
 }

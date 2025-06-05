@@ -2,6 +2,11 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+@font-face {
+  font-family: "Aura";
+  src: url("/fonts/aura.ttf") format("truetype");
+  font-display: swap;
+}
 
 @theme inline {
   --color-background: var(--background);
