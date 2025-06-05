@@ -16,6 +16,7 @@ export default function PizzaGame() {
   const [effects, setEffects] = useState([]);
   const [playerX, setPlayerX] = useState(300);
   const [gameOver, setGameOver] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
   const intervalRefs = useRef({ timer: null, dropper: null });
 
   useEffect(() => {
@@ -28,7 +29,7 @@ export default function PizzaGame() {
   }, []);
 
   useEffect(() => {
-    if (gameOver) return;
+    if (gameOver || showIntro) return;
     const timer = setInterval(() => {
       setTimeLeft((t) => {
         if (t <= 0) {
@@ -42,10 +43,10 @@ export default function PizzaGame() {
     }, 1000);
     intervalRefs.current.timer = timer;
     return () => clearInterval(timer);
-  }, [gameOver]);
+  }, [gameOver, showIntro]);
 
   useEffect(() => {
-    if (gameOver) return;
+    if (gameOver || showIntro) return;
     const dropper = setInterval(() => {
       setPizzas((prev) => {
         if (prev.length >= 4) return prev;
@@ -62,10 +63,10 @@ export default function PizzaGame() {
     }, 500);
     intervalRefs.current.dropper = dropper;
     return () => clearInterval(dropper);
-  }, [gameOver]);
+  }, [gameOver, showIntro]);
 
   useEffect(() => {
-    if (gameOver) return;
+    if (gameOver || showIntro) return;
     const moveInterval = setInterval(() => {
       setPizzas((prev) => prev.map((p) => ({ ...p, y: p.y + 5 })));
 
@@ -103,7 +104,7 @@ export default function PizzaGame() {
       });
     }, 30);
     return () => clearInterval(moveInterval);
-  }, [playerX, gameOver]);
+  }, [playerX, gameOver, showIntro]);
 
   const triggerEffect = (x, y, text) => {
     const id = Math.random();
@@ -138,6 +139,24 @@ export default function PizzaGame() {
             {effect.text}
           </div>
         ))}
+
+        {showIntro && (
+          <div id="introOverlay">
+            <h3 className="intro-title">✨ RULES ✨</h3>
+            <p className="intro-sub">
+              整天待在研究室已經累鼠了...QQ<br />
+              我需要逃跑！我需要熱量！<br />
+              每一片披薩都要有肉腸！素的我不要！<br />
+              沒有吃到不寫論文了！
+            </p>
+            <hr className="intro-divider" />
+            <p className="intro-detail">30 秒內 ⭠、⭢ 移動人物，接住肉腸披薩！</p>
+            <p className="intro-detail">肉腸披薩🍕+5 ，青花菜披薩🥦 -3 ，肉腸披薩掉地上💥 -5</p>
+            <p className="intro-detail">❗70 分以上才能讓研究生滿足、回去寫論文❗</p>
+            <button onClick={() => setShowIntro(false)}>開始挑戰</button>
+          </div>
+        )}
+
         {gameOver && (
           <div id="resultScreen">
             <h3>
@@ -146,7 +165,7 @@ export default function PizzaGame() {
             <p>
               {score >= 70
                 ? '大滿足！回去寫論文！😇 ❤️'
-                : '不寫了！我就延畢！😠💥'}
+                : '不寫了！我就延畢！😠 💥'}
             </p>
             <button id="restartBtn" onClick={() => window.location.reload()}>
               再吃一回
@@ -157,6 +176,8 @@ export default function PizzaGame() {
     </div>
   );
 }
+
+
 
 
 
