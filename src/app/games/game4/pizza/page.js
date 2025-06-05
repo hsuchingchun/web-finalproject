@@ -140,6 +140,7 @@ export default function PizzaGame() {
           </div>
         ))}
 
+        {/* Intro 說明頁浮層 */}
         {showIntro && (
           <div id="introOverlay">
             <h3 className="intro-title">✨ RULES ✨</h3>
@@ -153,10 +154,11 @@ export default function PizzaGame() {
             <p className="intro-detail">30 秒內 ⭠、⭢ 移動人物，接住肉腸披薩！</p>
             <p className="intro-detail">肉腸披薩🍕+5 ，青花菜披薩🥦 -3 ，肉腸披薩掉地上💥 -5</p>
             <p className="intro-detail">❗70 分以上才能讓研究生滿足、回去寫論文❗</p>
-            <button onClick={() => setShowIntro(false)}>開始挑戰</button>
+            <button className="intro-button" onClick={() => setShowIntro(false)}>開吃囉</button>
           </div>
         )}
 
+        {/* 結果頁浮層 */}
         {gameOver && (
           <div id="resultScreen">
             <h3>
@@ -176,6 +178,7 @@ export default function PizzaGame() {
     </div>
   );
 }
+
 
 
 
