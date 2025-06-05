@@ -580,7 +580,7 @@ export default function Game1() {
             {/* power bar */}
             <div className={`w-full h-[44%] flex flex-col justify-center items-center opacity-${powerBarOpacity}`}>
               <div className="text-white px-2 w-[80%]" style={{ fontFamily: 'Silkscreen, sans-serif' }}>power</div>
-              <img src={`${selectedPowerBar}`} alt="" className="w-[80%]" />
+              <img src={selectedPowerBar} alt="" className="w-[80%]" />
             </div>
           </div>
 
