@@ -18,6 +18,9 @@ export default function Game2() {
   const [paused, setPaused] = useState(false);
   const [comboText, setComboText] = useState(null);
   const [cupX, setCupX] = useState(0);
+  const shooterImg = useRef(null);
+
+  const bgImage = useRef(null);
 
   useEffect(() => {
     const resize = () => {
@@ -28,6 +31,11 @@ export default function Game2() {
     resize();
     window.addEventListener("resize", resize);
     return () => window.removeEventListener("resize", resize);
+  }, []);
+
+  useEffect(() => {
+    bgImage.current = new Image();
+    bgImage.current.src = "/game2/bg.png";
   }, []);
 
   useEffect(() => {
@@ -68,7 +76,7 @@ export default function Game2() {
         initial.push({
           x: col * 48 + offsetX + (canvasSize.width - totalCols * 48) / 2,
           y: row * 42 + 40,
-          color: COLORS[Math.floor(Math.random() * COLORS.length)],
+          color: COLORS[Math.floor(Math.random() * COLORS.length)]
         });
       }
     }
@@ -92,9 +100,12 @@ export default function Game2() {
   }, []);
 
   const renderScene = useCallback((ctx) => {
-    ctx.clearRect(0, 0, canvasSize.width, canvasSize.height);
-    ctx.fillStyle = "#90caf9";
-    ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
+    if (bgImage.current?.complete) {
+      ctx.drawImage(bgImage.current, 0, 0, canvasSize.width, canvasSize.height);
+    } else {
+      ctx.fillStyle = "#90caf9";
+      ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
+    }
 
     for (const b of bubbles) {
       drawBubble(ctx, b.x, b.y, b.color);
@@ -114,38 +125,12 @@ export default function Game2() {
 
     const cupY = canvasSize.height - 96;
 
-    ctx.fillStyle = "#000";
-    ctx.fillRect(cupX - 36, cupY - 4, 72, 88);
-    ctx.fillStyle = "#fbe8c5";
-    ctx.fillRect(cupX - 34, cupY - 2, 68, 84);
-
-    ctx.fillStyle = "#4527a0";
-    ctx.fillRect(cupX - 4, cupY - 40, 8, 40);
-
-    ctx.fillStyle = "#000";
-    ctx.fillRect(cupX - 16, cupY + 20, 4, 4);
-    ctx.fillRect(cupX + 12, cupY + 20, 4, 4);
-    ctx.fillRect(cupX - 6, cupY + 26, 12, 4);
-    ctx.fillStyle = "#f48fb1";
-    ctx.fillRect(cupX - 24, cupY + 22, 6, 6);
-    ctx.fillRect(cupX + 18, cupY + 22, 6, 6);
-
-    const pearlPositions = [
-      [cupX - 20, cupY + 58],
-      [cupX, cupY + 54],
-      [cupX + 20, cupY + 58],
-      [cupX - 12, cupY + 70],
-      [cupX + 12, cupY + 70]
-    ];
-    ctx.fillStyle = "#3e2723";
-    for (const [px, py] of pearlPositions) {
-      ctx.beginPath();
-      ctx.arc(px + 3, py + 3, 3, 0, Math.PI * 2);
-      ctx.fill();
+    if (shooterImg.current?.complete) {
+      ctx.drawImage(shooterImg.current, cupX - CUP_WIDTH / 2, cupY, CUP_WIDTH, 96);
     }
 
     if (nextColor) {
-      drawBubble(ctx, cupX, cupY - 40, nextColor);
+      drawBubble(ctx, cupX + 7, cupY - 16, nextColor);
     }
 
     ctx.fillStyle = "#1a237e";
@@ -256,6 +241,16 @@ export default function Game2() {
         height={canvasSize.height}
         onClick={handleShoot}
         className="block"
+      />
+      <img
+        ref={shooterImg}
+        src="/game2/shooter_boba.png"
+        alt="shooter"
+        style={{ display: "none" }}
+        onLoad={() => {
+          const ctx = canvasRef.current?.getContext("2d");
+          if (ctx) renderScene(ctx);
+        }}
       />
       <div className="absolute top-4 left-4 px-4 py-2 bg-white/80 text-black rounded-xl shadow-md text-base font-bold">
         Step: {stepCount} ｜ Status: {status} ｜ Score: {stepCount * 10} ｜ Time: {timeLeft}s
