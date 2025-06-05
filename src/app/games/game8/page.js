@@ -83,7 +83,7 @@ export default function Game() {
           .map(food => ({ ...food, y: food.y + 1 })) // 更慢的速度
           .filter(food => food.y < 660);
         
-        setDebug(`更新位置後還有 ${updatedFoods.length} 個食材`);
+        // setDebug(`更新位置後還有 ${updatedFoods.length} 個食材`);
         return updatedFoods;
       });
       
