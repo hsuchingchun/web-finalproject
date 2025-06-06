@@ -32,30 +32,103 @@ export default function Game() {
   const missTimeout = useRef(null);
   const comboMessageTimeout = useRef(null);
   const [hasMovedOnce, setHasMovedOnce] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [smokeEffects, setSmokeEffects] = useState([]);
+  const [status, setStatus] = useState(0);
+  
+  // 音效控制
+  const bgmRef = useRef(null);
+  const [bgmIsPlaying, setBgmIsPlaying] = useState(true);
+  const soundClickRef = useRef(null);
+  const soundGoodRef = useRef(null);
+  const soundOppsRef = useRef(null);
+  const soundComeRef = useRef(null);
+
+  // 音效播放
+  const bgmPlay = () => {
+    if (bgmRef.current) {
+      bgmRef.current.volume = 0.8;
+      bgmRef.current.play();
+    }
+  };
+
+  // 音樂開關
+  const toggleBgm = () => {
+    const bgm = bgmRef.current;
+    if (!bgm) return;
+
+    if (bgmIsPlaying) {
+      bgm.pause();
+      // 關閉所有音效
+      if (soundClickRef.current) soundClickRef.current.muted = true;
+      if (soundGoodRef.current) soundGoodRef.current.muted = true;
+      if (soundOppsRef.current) soundOppsRef.current.muted = true;
+      if (soundComeRef.current) soundComeRef.current.muted = true;
+    } else {
+      bgm.play().catch((err) => {
+        console.warn('播放失敗：', err);
+      });
+      // 開啟所有音效
+      if (soundClickRef.current) soundClickRef.current.muted = false;
+      if (soundGoodRef.current) soundGoodRef.current.muted = false;
+      if (soundOppsRef.current) soundOppsRef.current.muted = false;
+      if (soundComeRef.current) soundComeRef.current.muted = false;
+    }
+
+    setBgmIsPlaying(!bgmIsPlaying);
+  };
+
+  // 點擊音效
+  const clickPlay = () => {
+    if (soundClickRef.current) {
+      soundClickRef.current.currentTime = 0;
+      soundClickRef.current.play().catch((err) => {
+        console.warn('播放音效失敗', err);
+      });
+    }
+  };
+
+  // 成功音效
+  const goodPlay = () => {
+    if (soundGoodRef.current) {
+      soundGoodRef.current.currentTime = 0;
+      soundGoodRef.current.play().catch((err) => {
+        console.warn('播放音效失敗', err);
+      });
+    }
+  };
+
+  // 失敗音效
+  const oppsPlay = () => {
+    if (soundOppsRef.current) {
+      soundOppsRef.current.currentTime = 0;
+      soundOppsRef.current.play().catch((err) => {
+        console.warn('播放音效失敗', err);
+      });
+    }
+  };
+
+  // 當遊戲開始時設置所有音效的初始狀態
+  useEffect(() => {
+    if (gameStarted) {
+      bgmPlay();
+      // 設置所有音效的初始狀態
+      if (soundClickRef.current) soundClickRef.current.muted = !bgmIsPlaying;
+      if (soundGoodRef.current) soundGoodRef.current.muted = !bgmIsPlaying;
+      if (soundOppsRef.current) soundOppsRef.current.muted = !bgmIsPlaying;
+      if (soundComeRef.current) soundComeRef.current.muted = !bgmIsPlaying;
+    }
+  }, [gameStarted]);
 
   // 初始化遊戲
   useEffect(() => {
     generateNewTarget();
     const initialFood = FOOD_TYPES[Math.floor(Math.random() * FOOD_TYPES.length)];
-    
-    // 監聽開始遊戲的按鍵
-    const handleStart = (e) => {
-      if (!gameStarted && e.key === "ArrowRight") {
-        setGameStarted(true);
-        // 立即生成第一個食材
-        generateFood();
-      }
-    };
-
-    window.addEventListener("keydown", handleStart);
-    return () => {
-      window.removeEventListener("keydown", handleStart);
-    };
-  }, [gameStarted]);
+  }, []);
 
   // 遊戲開始後才啟動食材生成
   useEffect(() => {
-    if (!gameStarted) return;
+    if (!gameStarted || gameOver) return;
 
     // 隨機1-5秒生成一個新食材
     const generateNextFood = () => {
@@ -89,16 +162,24 @@ export default function Game() {
     setIsBossGenerating(true);
     setShowCome(true);
     
+    // 播放 come 音效
+    if (soundComeRef.current) {
+      soundComeRef.current.currentTime = 0;
+      soundComeRef.current.play().catch((err) => {
+        console.warn('播放音效失敗', err);
+      });
+    }
+    
     setTimeout(() => {
       setShowCome(false);
     }, 1000);
     
-    const newFood = {
+      const newFood = {
       ...FOOD_TYPES[Math.floor(Math.random() * FOOD_TYPES.length)],
       id: crypto.randomUUID(),
       y: 300,
       x: 800,
-    };
+      };
     
     setFallingFoods(prev => {
       const newFoods = [...prev, newFood];
@@ -110,13 +191,44 @@ export default function Game() {
     }, 300);
   };
 
-  // 掉落動畫
+  // Add smoke effect function
+  const addSmokeEffect = (x, y) => {
+    const newSmoke = {
+      id: crypto.randomUUID(),
+      x,
+      y,
+      createdAt: Date.now()
+    };
+    setSmokeEffects(prev => [...prev, newSmoke]);
+
+    // Remove smoke effect after animation
+    setTimeout(() => {
+      setSmokeEffects(prev => prev.filter(smoke => smoke.id !== newSmoke.id));
+    }, 500); // Match this with the animation duration
+  };
+
+  // 處理食材掉落動畫
   useEffect(() => {
+    if (!gameStarted || gameOver) {
+      if (dropAnimationRef.current) {
+        cancelAnimationFrame(dropAnimationRef.current);
+        dropAnimationRef.current = null;
+      }
+      return;
+    }
+
     const animate = () => {
       setFallingFoods(prevFoods => {
         const updatedFoods = prevFoods
-          .map(food => ({ ...food, y: food.y + 1 })) // 更慢的速度
-          .filter(food => food.y < 660);
+          .map(food => ({ ...food, y: food.y + 1 }))
+          .filter(food => {
+            if (food.y >= 660) {
+              // Add smoke effect at the exact position where food disappears
+              addSmokeEffect(food.x - 40, food.y - 40);
+              return false;
+            }
+            return true;
+          });
         
         return updatedFoods;
       });
@@ -129,9 +241,10 @@ export default function Game() {
     return () => {
       if (dropAnimationRef.current) {
         cancelAnimationFrame(dropAnimationRef.current);
+        dropAnimationRef.current = null;
       }
     };
-  }, []);
+  }, [gameStarted, gameOver]);
 
   // 插入與吐出邏輯
   useEffect(() => {
@@ -199,7 +312,14 @@ export default function Game() {
     setShowComboMessage(true);
     setComboMessage(correct ? "good" : "oops");
     
-    // 2秒後清除訊息
+    // 播放音效
+    if (correct) {
+      goodPlay();
+    } else {
+      oppsPlay();
+    }
+    
+    // 0.5秒後清除訊息
     if (comboMessageTimeout.current) {
       clearTimeout(comboMessageTimeout.current);
     }
@@ -215,19 +335,122 @@ export default function Game() {
       }
       setSkeweredFoods([]);
       generateNewTarget();
-    }, 2000);
+    }, 500);
   };
 
   // 監控分數變化
   useEffect(() => {
-    if (score >= 6) {
+    if (score >= 6 || score <= -6) {
       setGameOver(true);
-      setGameResult("恭喜完成！論文進度更近一步！");
-    } else if (score <= -6) {
-      setGameOver(true);
-      setGameResult("再接再厲，繼續練習！");
+      setGameResult(score >= 6 ? "恭喜完成！論文進度更近一步！" : "再接再厲，繼續練習！");
+      // 遊戲結束時關閉所有音效
+      if (bgmRef.current) bgmRef.current.pause();
+      if (soundClickRef.current) soundClickRef.current.muted = true;
+      if (soundGoodRef.current) soundGoodRef.current.muted = true;
+      if (soundOppsRef.current) soundOppsRef.current.muted = true;
+      if (soundComeRef.current) soundComeRef.current.muted = true;
+      setBgmIsPlaying(false);
     }
   }, [score]);
+
+  // 處理再玩一次
+  const handlePlayAgain = () => {
+    if (soundClickRef.current) {
+      // 先取消靜音以播放點擊音效
+      soundClickRef.current.muted = false;
+      soundClickRef.current.play().then(() => {
+        soundClickRef.current.addEventListener('ended', () => {
+          // 重置所有遊戲狀態
+          setScore(0);
+          setGameOver(false);
+          setGameResult("");
+          setSkeweredFoods([]);
+          setFallingFoods([]);
+          setShowMiss(false);
+          setShowComboMessage(false);
+          setComboMessage("");
+          setIsBossGenerating(false);
+          setShowCome(false);
+          setHasMovedOnce(false);
+          
+          // 清除所有計時器
+          if (moveTimeout.current) {
+            clearTimeout(moveTimeout.current);
+            moveTimeout.current = null;
+          }
+          if (missTimeout.current) {
+            clearTimeout(missTimeout.current);
+            missTimeout.current = null;
+          }
+          if (comboMessageTimeout.current) {
+            clearTimeout(comboMessageTimeout.current);
+            comboMessageTimeout.current = null;
+          }
+          if (dropAnimationRef.current) {
+            cancelAnimationFrame(dropAnimationRef.current);
+            dropAnimationRef.current = null;
+          }
+          
+          // 重新開啟所有音效
+          if (bgmRef.current) {
+            bgmRef.current.currentTime = 0;
+            bgmRef.current.play();
+          }
+          if (soundClickRef.current) soundClickRef.current.muted = false;
+          if (soundGoodRef.current) soundGoodRef.current.muted = false;
+          if (soundOppsRef.current) soundOppsRef.current.muted = false;
+          if (soundComeRef.current) soundComeRef.current.muted = false;
+          setBgmIsPlaying(true);
+          
+          // 重新生成目標組合
+          generateNewTarget();
+          // 重新開始遊戲
+          setGameStarted(true);
+        }, { once: true });
+      }).catch(err => {
+        console.warn('播放音效失敗', err);
+        // 同樣的重置邏輯，但不包含音效相關的部分
+        setScore(0);
+        setGameOver(false);
+        setGameResult("");
+        setSkeweredFoods([]);
+        setFallingFoods([]);
+        setShowMiss(false);
+        setShowComboMessage(false);
+        setComboMessage("");
+        setIsBossGenerating(false);
+        setShowCome(false);
+        setHasMovedOnce(false);
+        if (moveTimeout.current) clearTimeout(moveTimeout.current);
+        if (missTimeout.current) clearTimeout(missTimeout.current);
+        if (comboMessageTimeout.current) clearTimeout(comboMessageTimeout.current);
+        if (dropAnimationRef.current) cancelAnimationFrame(dropAnimationRef.current);
+        generateNewTarget();
+        setGameStarted(true);
+        generateFood();
+      });
+    } else {
+      // 沒有音效時的重置邏輯
+      setScore(0);
+      setGameOver(false);
+      setGameResult("");
+      setSkeweredFoods([]);
+      setFallingFoods([]);
+      setShowMiss(false);
+      setShowComboMessage(false);
+      setComboMessage("");
+      setIsBossGenerating(false);
+      setShowCome(false);
+      setHasMovedOnce(false);
+      if (moveTimeout.current) clearTimeout(moveTimeout.current);
+      if (missTimeout.current) clearTimeout(missTimeout.current);
+      if (comboMessageTimeout.current) clearTimeout(comboMessageTimeout.current);
+      if (dropAnimationRef.current) cancelAnimationFrame(dropAnimationRef.current);
+      generateNewTarget();
+      setGameStarted(true);
+      generateFood();
+    }
+  };
 
   // 清理所有timeouts
   useEffect(() => {
@@ -251,8 +474,110 @@ export default function Game() {
   // 修改 showMessage 的條件
   const shouldShowMessage = !hasMovedOnce && skewerPosition === 250;
 
+  // Loading effect
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1500); // 1.5 seconds loading time
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Add style for smoke animation
+  const smokeKeyframes = `
+    @keyframes smokeAnimation {
+      0% {
+        transform: translate(-50%, -50%) scale(0.2);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(2);
+        opacity: 0;
+      }
+    }
+  `;
+
+  // 初始化 status
+  useEffect(() => {
+    const stored = localStorage.getItem("status");
+    if (stored) setStatus(parseInt(stored));
+  }, []);
+
+  const handleFinish = () => {
+    const delta = -1;
+    const newStatus = status + delta;
+    localStorage.setItem("status", newStatus);
+    router.push("/");
+  };
+
+  const quitGame = () => {
+    if (soundClickRef.current) {
+      soundClickRef.current.play().then(() => {
+        soundClickRef.current.addEventListener('ended', () => {
+          router.push("/");
+        }, { once: true });
+      }).catch(err => {
+        console.warn('播放音效失敗', err);
+        router.push("/");
+      });
+    } else {
+      router.push("/");
+    }
+  };
+
+  // 處理開始遊戲
+  const handleStartGame = () => {
+    if (soundClickRef.current) {
+      soundClickRef.current.play().then(() => {
+        soundClickRef.current.addEventListener('ended', () => {
+          setGameStarted(true);
+          generateFood();
+        }, { once: true });
+      }).catch(err => {
+        console.warn('播放音效失敗', err);
+        setGameStarted(true);
+        generateFood();
+      });
+    } else {
+      setGameStarted(true);
+      generateFood();
+    }
+  };
+
   return (
     <div className="flex flex-col items-center bg-black">
+      {/* 音效 */}
+      <audio ref={bgmRef} src="/game8images/bgm.mp3" loop />
+      <audio ref={soundClickRef} src="/game8images/soundClick.mp3" />
+      <audio ref={soundGoodRef} src="/game8images/soundGood.mp3" />
+      <audio ref={soundOppsRef} src="/game8images/soundOpps.mp3" />
+      <audio ref={soundComeRef} src="/game8images/come.mp3" />
+
+      {/* 音樂開關按鈕 */}
+      <img 
+        src={`${bgmIsPlaying ? "/game8images/soundon.png" : "/game8images/soundmuted.png"}`}
+        className="w-[30px] cursor-pointer z-50 absolute top-10 right-10"
+        onClick={toggleBgm}
+      />
+
+      {/* 返回按鈕 */}
+      <img 
+        src="/game8images/back.png"
+        className="w-[30px] cursor-pointer z-50 absolute top-10 left-10"
+        onClick={quitGame}
+      />
+
+      {/* Loading Screen */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
+          <div className="flex flex-col items-center">
+            <div className="w-16 h-16 border-t-4 border-b-4 border-white rounded-full animate-spin"></div>
+            <p className="mt-4 text-white text-xl">Loading...</p>
+          </div>
+        </div>
+      )}
+
       <div 
         className="relative w-screen h-screen bg-cover bg-center bg-no-repeat"
         style={{
@@ -262,12 +587,26 @@ export default function Game() {
       >
         {/* 開始遊戲遮罩 */}
         {!gameStarted && (
-          <div className="absolute inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 z-50 flex flex-col items-center justify-center">
             <img
               src="/game8images/start.png"
-              alt="Press Right Arrow to Start"
-              className="w-[70%] h-[70%] object-contain"
+              alt="Game Title"
+              className="w-[70%] h-[70%] object-contain mb-[-20px]"
             />
+            <div className="flex gap-8">
+              <img
+                src="/game8images/backPress.png"
+                alt="Back to Menu"
+                className="w-[200px] cursor-pointer transition-transform duration-200 hover:translate-y-[5px]"
+                onClick={quitGame}
+              />
+              <img
+                src="/game8images/startPress.png"
+                alt="Start Game"
+                className="w-[200px] cursor-pointer transition-transform duration-200 hover:translate-y-[5px]"
+                onClick={handleStartGame}
+              />
+            </div>
           </div>
         )}
 
@@ -305,7 +644,7 @@ export default function Game() {
                     alt={food.name}
                     className="w-full h-full object-contain"
                   />
-                </div>
+              </div>
                 {index < targetCombo.length - 1 && (
                   <span className="text-white text-2xl mx-1">➡️</span>
                 )}
@@ -317,7 +656,7 @@ export default function Game() {
         {/* 老闆 */}
         <div className="absolute top-[228px] left-[770px] w-[150px] h-[150px]">
           {showCome && (
-            <img
+          <img
               src="/game8images/come.png"
               alt="come"
               className="absolute -top-10 -left-16 w-[100px] h-[100px] object-contain z-10"
@@ -326,7 +665,7 @@ export default function Game() {
           <img
             src={isBossGenerating ? "/game8images/boss1.png" : "/game8images/boss2.png"}
             alt="boss"
-            className="w-full h-full object-contain drop-shadow-2xl"
+            className="w-full h-full object-contain"
             style={{
               filter: "drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.5))"
             }}
@@ -382,10 +721,10 @@ export default function Game() {
           <div 
             className="absolute"
             style={{
-              left: `${skewerPosition + 300}px`,
+              left: `${skewerPosition + 200}px`,
               top: "500px",
               zIndex: 100,
-              animation: "comboMessage 0.5s ease-out ease-in forwards"
+              animation: "missAnimation 0.5s ease-out forwards"
             }}
           >
             <img
@@ -429,7 +768,7 @@ export default function Game() {
             key={index}
             className="absolute w-[80px] h-[80px]"
             style={{
-              left: `${skewerPosition + index * 80 + 250}px`,
+              left: `${skewerPosition + index * 80 + 200}px`,
               top: "565px",
               padding: "4px",
               borderRadius: "8px",
@@ -440,36 +779,55 @@ export default function Game() {
               src={food.img}
               alt={food.name}
               className="w-full h-full object-contain"
+          />
+          </div>
+        ))}
+
+        {/* 煙霧特效 */}
+        {smokeEffects.map(smoke => (
+        <div
+            key={smoke.id}
+            className="absolute pointer-events-none"
+          style={{
+              left: `${smoke.x}px`,
+              top: `${smoke.y}px`,
+              width: '80px',
+              height: '80px',
+              zIndex: 40
+          }}
+          >
+            <img
+              src="/game8images/smoke.png"
+              alt="smoke"
+              className="w-full h-full object-contain"
+              style={{
+                animation: 'smokeAnimation 0.5s ease-out forwards'
+              }}
             />
           </div>
         ))}
 
         {/* 結束畫面 */}
         {gameOver && (
-          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4">
-            <div className="text-xl font-semibold mb-4 text-gray-800">
-              {gameResult}
-            </div>
-            <div className="flex space-x-4">
-              <button
-                onClick={() => router.push("/")}
-                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-              >
-                回到主頁
-              </button>
-              <button
-                onClick={() => {
-                  setScore(0);
-                  setGameOver(false);
-                  setGameResult("");
-                  setSkeweredFoods([]);
-                  setFallingFoods([]);
-                  generateNewTarget();
-                }}
-                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-              >
-                再玩一次
-              </button>
+          <div className="absolute inset-0 bg-black/50 z-50 flex flex-col items-center justify-center">
+            <img
+              src={`/game8images/${score >= 6 ? 'win' : 'loss'}.png`}
+              alt="Game Result"
+              className="w-[70%] h-[70%] object-contain mb-[-20px]"
+            />
+            <div className="flex gap-8">
+              <img
+                src="/game8images/againPress.png"
+                alt="Play Again"
+                className="w-[200px] cursor-pointer transition-transform duration-200 hover:translate-y-[5px]"
+                onClick={handlePlayAgain}
+              />
+              <img
+                src="/game8images/homePress.png"
+                alt="Back to Home"
+                className="w-[200px] cursor-pointer transition-transform duration-200 hover:translate-y-[5px]"
+                onClick={handleFinish}
+              />
             </div>
           </div>
         )}
@@ -490,6 +848,7 @@ export default function Game() {
           80% { opacity: 1; transform: translate(-50%, 0); }
           100% { opacity: 0; transform: translate(-50%, 0); }
         }
+        ${smokeKeyframes}
       `}</style>
     </div>
   );
