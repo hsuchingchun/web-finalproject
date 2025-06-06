@@ -29,6 +29,7 @@ export default function Game1() {
   //一開始播放
   const bgmPlay = () => {
     if (bgmRef.current) {
+      bgmRef.current.volume = 0.8;
       bgmRef.current.play();
     }
   };
@@ -47,6 +48,38 @@ export default function Game1() {
     }
 
     setBgmIsPlaying(!bgmIsPlaying);
+  };
+
+  // 音效
+  const soundClickRef = useRef(null);
+  const soundGoodRef = useRef(null);
+  const soundOppsRef = useRef(null);
+
+  const clickPlay = () => {
+    if (soundClickRef.current) {
+      soundClickRef.current.currentTime = 0; // 每次都從頭播
+      soundClickRef.current.play().catch((err) => {
+        console.warn('播放音效失敗', err);
+      });
+    }
+  };
+
+  const goodPlay = () => {
+    if (soundGoodRef.current) {
+      soundGoodRef.current.currentTime = 0; // 每次都從頭播
+      soundGoodRef.current.play().catch((err) => {
+        console.warn('播放音效失敗', err);
+      });
+    }
+  };
+
+  const oppsPlay = () => {
+    if (soundOppsRef.current) {
+      soundOppsRef.current.currentTime = 0; // 每次都從頭播
+      soundOppsRef.current.play().catch((err) => {
+        console.warn('播放音效失敗', err);
+      });
+    }
   };
 
 
@@ -198,6 +231,7 @@ export default function Game1() {
 
   //第一階段成功
   const jumpSuccess = () => {
+    goodPlay();
     setIsJumping(false); //停止跳躍
     setAttackState(2); //攻擊階段設為2
     setIsSpiking(true); //設定為正在扣球
@@ -212,6 +246,7 @@ export default function Game1() {
 
   //第二階段成功
   const spikeSuccess = () => {
+    goodPlay();
     setIsSpiking(false); //停止扣球
     setAttackState(3); //攻擊階段設為3
     setPowering(true); //設定為正在蓄力
@@ -226,6 +261,7 @@ export default function Game1() {
 
   //失敗
   const loseLife = () => {
+    oppsPlay();
     setLife(nowLife => nowLife - 1); //減一命
     setShowReact(true); //show react
     setSelectedReact(1); //select OOPS!
@@ -417,10 +453,10 @@ export default function Game1() {
         setPowering(false);
         loseLife(); //損失生命
         newRound();
-      } else if (powerCount.current > 5) { // 如果power>0，直接下一round
+      } else if (powerCount.current > 5) { // 如果power>5，直接下一round
         setPowering(false);
         setScore(score + (powerCount.current) * 10); //+power分數
-
+        goodPlay();
         setShowReact(true); //show react
         setSelectedReact(0); //select GOOD!
         setTimeout(() => {
@@ -481,19 +517,24 @@ export default function Game1() {
             bg-[url('/game1/indexBg.png')] bg-no-repeat bg-cover bg-center">
 
       {/* bgm */}
-      <audio ref={bgmRef} src="/game1/bgm.mp3" />
+      <audio ref={bgmRef} src="/game1/bgm.mp3" loop />
 
       {/* bgm 開關 */}
       <img src={`${bgmIsPlaying ? "/game1/soundon.png" : "/game1/soundmuted.png"}`}
         className={`w-[30px] cursor-pointer z-100 absolute top-4 left-4 ${gameStage > 0 ? "flex" : "hidden"}`}
         onClick={toggleBgm} />
 
+      {/* 音效 */}
+      <audio ref={soundClickRef} src="/game1/soundClick.mp3" />
+      <audio ref={soundGoodRef} src="/game1/soundGood.mp3" />
+      <audio ref={soundOppsRef} src="/game1/soundOpps.mp3" />
+
       {/* 主頁 */}
       <div className={`${gameStage == 0 ? "flex" : "hidden"} flex-col items-center justify-center w-full h-full`}>
         <img src="/game1/gameName.png" alt="" className="w-[400px] mb-20" />
         <img src="/game1/description.png" alt="" className="w-[400px] mb-16" />
         <img src="/game1/enterBtn.png" alt="" className="w-[100px] cursor-pointer mt-6
-                hover:translate-y-0.5 transition-all" onClick={nextStage} />
+                hover:translate-y-0.5 transition-all" onClick={() => { nextStage(); clickPlay(); }} />
         <img src="/game1/quitBtn.png" alt="" className="w-[100px] cursor-pointer mt-6
                 hover:translate-y-0.5 transition-all" onClick={quitGame} />
       </div>
@@ -506,8 +547,9 @@ export default function Game1() {
           <img src="/game1/rule.png" alt="" className="w-[240px] mb-22" />
           <img src={`${gameStage == 1 ? "/game1/ruleAttack.png" : "/game1/ruleLife.png"}`} alt="" className="h-[260px] w-auto mb-26" />
           <div className="flex justify-center items-center gap-10">
-            <img src="/game1/prevBtn.png" alt="" className="w-[100px] cursor-pointer hover:translate-y-0.5 transition-all" onClick={prevStage} />
-            <img src={`${gameStage == 1 ? "/game1/nextBtn.png" : "/game1/startBtn.png"}`} alt="" className="w-[100px] cursor-pointer hover:translate-y-0.5 transition-all" onClick={nextStage} />
+            <img src="/game1/prevBtn.png" alt="" className="w-[100px] cursor-pointer hover:translate-y-0.5 transition-all" onClick={() => { prevStage(); clickPlay(); }} />
+            <img src={`${gameStage == 1 ? "/game1/nextBtn.png" : "/game1/startBtn.png"}`} alt=""
+              className="w-[100px] cursor-pointer hover:translate-y-0.5 transition-all" onClick={() => { nextStage(); clickPlay(); }} />
           </div>
         </div>
       </div>
