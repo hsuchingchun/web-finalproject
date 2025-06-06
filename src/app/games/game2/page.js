@@ -2,8 +2,6 @@
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef, useCallback } from "react";
 
-
-
 const COLORS = ["#f44336", "#ff9800", "#4caf50", "#2196f3"];
 const CUP_WIDTH = 72;
 
@@ -23,21 +21,38 @@ export default function Game2() {
   const [gameResult, setGameResult] = useState("");
   const [finalScore, setFinalScore] = useState(0);
   const [score, setScore] = useState(0);
+  const scoreRef = useRef(0);
   const shooterImg = useRef(null);
   const bgImage = useRef(null);
   const [status, setStatus] = useState(0);
-  
+  const lastFallTimeRef = useRef(Date.now());
+  const popSound = useRef(null);
+
+  useEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
+
   useEffect(() => {
     const stored = localStorage.getItem("status");
     if (stored) setStatus(parseInt(stored));
+    popSound.current = new Audio("/game2/pop.mp3");
   }, []);
 
-  const handleFinish = () => {
-    const delta = 1;
-    const newStatus = status + delta;
-    localStorage.setItem("status", newStatus);
-    router.push("/");
+  const playPop = () => {
+    if (popSound.current) {
+      popSound.current.currentTime = 0;
+      popSound.current.play();
+    }
   };
+
+  const handleFinish = () => {
+  const delta = 1;
+  const newStatus = status + delta;
+  localStorage.setItem("status", newStatus);
+  setTimeout(() => {
+    router.push("/");
+  }, 2000); // 延遲 2 秒跳轉，讓使用者看到得分畫面
+};
 
   useEffect(() => {
     const resize = () => {
@@ -176,6 +191,7 @@ export default function Game2() {
           const removed = removeMatchingBubbles(updatedBubbles, newBubble);
           const removedCount = updatedBubbles.length - removed.length;
           if (removedCount >= 3) {
+            playPop();
             const gained = 10 + (removedCount - 3) * 2;
             setScore((prevScore) => prevScore + gained);
             setComboText("+" + gained);
@@ -193,27 +209,35 @@ export default function Game2() {
   }, [shooting, bubbles, paused, showIntro, gameResult]);
 
   useEffect(() => {
-    if (stepCount > 0 && stepCount % Math.max(5 - Math.floor(stepCount / 20), 2) === 0) {
-      setBubbles(prev => {
-        const moved = prev.map(b => ({ ...b, y: b.y + 48 }));
-        const touchBottom = moved.some(b => b.y + 16 >= canvasSize.height - 96);
-        if (touchBottom) {
-          setGameResult("Game Over");
-          setFinalScore(score);
-          return prev;
-        }
-        return moved;
-      });
-    }
-  }, [stepCount]);
+    let frameId;
+    const loop = () => {
+      const now = Date.now();
+      if (!paused && !showIntro && !gameResult && now - lastFallTimeRef.current >= 15000) {
+        setBubbles((prev) => {
+          const moved = prev.map((b) => ({ ...b, y: b.y + 48 }));
+          const touchBottom = moved.some((b) => b.y + 16 >= canvasSize.height - 96);
+          if (touchBottom) {
+            setGameResult("Game Over");
+            setFinalScore(score);
+            return prev;
+          }
+          return moved;
+        });
+        lastFallTimeRef.current = now;
+      }
+      frameId = requestAnimationFrame(loop);
+    };
+    frameId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(frameId);
+  }, [paused, showIntro, gameResult, canvasSize.height, score]);
 
   useEffect(() => {
     if (paused || showIntro || gameResult) return;
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          setGameResult("Time's Up");
-          setFinalScore(score);
+          setFinalScore(scoreRef.current);
+  setTimeout(() => setGameResult("Time's Up"), 100);
           return 0;
         }
         return prev - 1;
@@ -302,22 +326,21 @@ export default function Game2() {
       )}
       {showIntro && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-white/90 to-sky-100/80 text-black p-10 rounded-xl shadow-2xl border border-white">
-        <h1 className="text-4xl font-bold mb-6 text-indigo-800 drop-shadow-sm">🎯 遊戲說明</h1>
-        <ul className="text-lg mb-6 list-disc list-inside space-y-2 text-gray-800">
-          <li>使用左右鍵移動珍奶寶寶，點擊畫面發射珍珠</li>
-          <li>三顆以上相同顏色的珍珠相連即可消除</li>
-          <li>珍珠碰到底部時，遊戲將會結束</li>
-          <li>請在 60 秒內盡量消除更多珍珠以取得高分</li>
-        </ul>
-        <h2 className="text-2xl font-semibold text-indigo-700 mb-2">📈 計分方式</h2>
-        <p className="text-lg text-center text-gray-700 mb-8">
-          成功消除 <span className="text-green-600 font-bold">3</span> 顆泡泡得 <span className="text-green-600 font-bold">10</span> 分<br />
-          每多消除 <span className="text-green-600 font-bold">1</span> 顆額外加 <span className="text-green-600 font-bold">2</span> 分
-        </p>
-        <button
-          className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white text-xl rounded-xl shadow-lg transition-transform hover:scale-105"
-          onClick={() => setShowIntro(false)}
-        
+          <h1 className="text-4xl font-bold mb-6 text-indigo-800 drop-shadow-sm">🎯 遊戲說明</h1>
+          <ul className="text-lg mb-6 list-disc list-inside space-y-2 text-gray-800">
+            <li>使用左右鍵移動珍奶寶寶，點擊畫面發射珍珠</li>
+            <li>三顆以上相同顏色的珍珠相連即可消除</li>
+            <li>珍珠碰到底部時，遊戲將會結束</li>
+            <li>請在 60 秒內盡量消除更多珍珠以取得高分</li>
+          </ul>
+          <h2 className="text-2xl font-semibold text-indigo-700 mb-2">📈 計分方式</h2>
+          <p className="text-lg text-center text-gray-700 mb-8">
+            成功消除 <span className="text-green-600 font-bold">3</span> 顆泡泡得 <span className="text-green-600 font-bold">10</span> 分<br />
+            每多消除 <span className="text-green-600 font-bold">1</span> 顆額外加 <span className="text-green-600 font-bold">2</span> 分
+          </p>
+          <button
+            className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white text-xl rounded-xl shadow-lg transition-transform hover:scale-105"
+            onClick={() => setShowIntro(false)}
           >
             開始遊戲
           </button>
