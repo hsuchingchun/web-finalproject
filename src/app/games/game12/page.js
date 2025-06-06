@@ -17,6 +17,11 @@ export default function IceCreamCatchGame() {
     { type: "high", score: 3, image: "/game12/icecream4.png" },
     { type: "normal", score: 1, image: "/game12/icecream3.png" },
   ];
+  // 音效 refs
+  const bgAudioRef = useRef(null);
+  const eatIceCreamAudioRef = useRef(null);
+  const bitterMelonAudioRef = useRef(null);
+  const prevPlayRef = useRef(false);
 
   // Intro 狀態
   const [showIntro, setShowIntro] = useState(true);
@@ -84,6 +89,45 @@ export default function IceCreamCatchGame() {
     };
   }, []);
 
+  // --- 背景音樂自動播放 & 停止 ---
+  useEffect(() => {
+    const shouldPlay = !showIntro && !gameOver && !gameFinish;
+    const audio = bgAudioRef.current;
+    if (!audio) return;
+
+    if (shouldPlay && !prevPlayRef.current) {
+      try {
+        audio.currentTime = 0;
+        audio.volume = 0.66;
+        audio.play().catch(() => {});
+      } catch (e) {}
+    }
+    if (!shouldPlay && prevPlayRef.current) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+    prevPlayRef.current = shouldPlay;
+  }, [showIntro, gameOver, gameFinish]);
+
+  function playEatIceCream() {
+    if (eatIceCreamAudioRef.current) {
+      try {
+        eatIceCreamAudioRef.current.pause();
+        eatIceCreamAudioRef.current.currentTime = 0;
+        eatIceCreamAudioRef.current.play().catch(() => {});
+      } catch (err) {}
+    }
+  }
+  function playBitterMelon() {
+    if (bitterMelonAudioRef.current) {
+      try {
+        bitterMelonAudioRef.current.pause();
+        bitterMelonAudioRef.current.currentTime = 0;
+        bitterMelonAudioRef.current.play().catch(() => {});
+      } catch (err) {}
+    }
+  }
+
   // 定時產生新冰淇淋
   useEffect(() => {
     if (gameOver || gameFinish || showIntro) return;
@@ -139,9 +183,11 @@ export default function IceCreamCatchGame() {
               nextMiss += 1;
               setIsAngry(true);
               setTimeout(() => setIsAngry(false), 500);
+              playBitterMelon();
             } else {
               setIsEating(true);
               setTimeout(() => setIsEating(false), 500);
+              playEatIceCream();
             }
             continue;
           }
@@ -692,7 +738,7 @@ export default function IceCreamCatchGame() {
               <img
                 src={
                   isAngry
-                    ? "/game12/player_angry.png"
+                    ? "/game12/player_disgusting.png"
                     : isEating
                     ? "/game12/player_eat.png"
                     : "/game12/player.png"
@@ -734,6 +780,26 @@ export default function IceCreamCatchGame() {
           )}
         </div>
       )}
+      {/* ----- 音樂/音效播放器 ----- */}
+      <audio
+        ref={bgAudioRef}
+        src="/game12/bg.mp3"
+        loop
+        preload="auto"
+        style={{ display: "none" }}
+      />
+      <audio
+        ref={eatIceCreamAudioRef}
+        src="/game12/eaticecream.mp3"
+        preload="auto"
+        style={{ display: "none" }}
+      />
+      <audio
+        ref={bitterMelonAudioRef}
+        src="/game12/bittermelon.mp3"
+        preload="auto"
+        style={{ display: "none" }}
+      />
     </>
   );
 }
