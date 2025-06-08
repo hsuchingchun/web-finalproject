@@ -1,0 +1,50 @@
+@keyframes jump {
+    0% {
+      top: 350px;
+    }
+  
+    50% {
+      top: 200px;
+    }
+    
+    100% {
+      top: 350px;
+    }
+  }
+  
+  .jump-animation {
+    animation: jump 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  
+  @keyframes block {
+    0% {
+      left: 1200px;
+    }
+    
+    100% {
+      left: 0px;
+    }
+  }
+  
+  .block-animation {
+    animation: block 2.2s infinite linear;
+  }
+  
+  @keyframes blink {
+    0% {
+        opacity: 1;
+    }
+    80% {
+        opacity: 1;
+    }
+    81% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 0;
+    }
+  }
+  
+  .blink-animation {
+    animation: blink 1s infinite ease-in-out;
+  }
