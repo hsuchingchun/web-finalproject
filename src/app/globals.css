@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+
 @font-face {
   font-family: "Aura";
   src: url("/fonts/aura.ttf") format("truetype");
@@ -131,6 +132,7 @@ body {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
