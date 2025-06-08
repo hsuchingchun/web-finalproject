@@ -571,13 +571,15 @@ export default function Game() {
   }, []);
 
   const handleFinish = () => {
-    const delta = -1;
+    // 只有在贏得遊戲時才增加 status，其他情況保持不變
+    const delta = score >= 6 ? +1 : 0;
     const newStatus = status + delta;
     localStorage.setItem("status", newStatus);
     router.push("/");
   };
 
   const quitGame = () => {
+    // 直接返回首頁，不改變 status
     if (soundClickRef.current) {
       soundClickRef.current.play().then(() => {
         soundClickRef.current.addEventListener('ended', () => {
