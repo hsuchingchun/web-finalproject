@@ -87,6 +87,14 @@ export default function Game7() {
     }
   };
 
+  // 停止音樂
+  const stopMusic = () => {
+    if (playerRef.current) {
+      playerRef.current.stopVideo();
+      setIsMusicPlaying(false);
+    }
+  };
+
   useEffect(() => {
     setIsClient(true);
     const stored = localStorage.getItem("status");
@@ -113,6 +121,7 @@ export default function Game7() {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             setGameOver(true);
+            stopMusic(); // 遊戲失敗時停止音樂
             return 0;
           }
           return prev - 1;
@@ -128,9 +137,15 @@ export default function Game7() {
     setGameOver(false);
     setPiecesInTray(shuffleArray(initialPieces));
     setBins(Array(9).fill(null));
+    // 重新開始遊戲時播放音樂
+    if (playerRef.current) {
+      playerRef.current.playVideo();
+      setIsMusicPlaying(true);
+    }
   };
 
   const handleFinish = () => {
+    stopMusic(); // 遊戲完成時停止音樂
     const delta = -1;
     const newStatus = status + delta;
     localStorage.setItem("status", newStatus);
@@ -232,7 +247,7 @@ export default function Game7() {
       {/* YouTube 播放器（隱藏） */}
       <div className="hidden">
         <YouTube
-          videoId="IfkdMZYIsi8"
+          videoId="EdOWFsx_0xc"
           opts={opts}
           onReady={onReady}
           onError={onError}
