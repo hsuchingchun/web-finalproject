@@ -598,11 +598,18 @@ export default function PingpongGame() {
           });
           setHasInteracted(true);
         }
+
+        // 遊戲開始邏輯
         if (!gameStarted) {
           gameStarted = true;
+          awaitingServe = true;
+          serveTurn = "player";
+          serveCount = 0;
           return;
         }
-        if (awaitingServe && serveTurn === "player") {
+
+        // 發球和玩家動作邏輯
+        if (awaitingServe && serveTurn === "player" && gameStarted) {
           ballX = table.x + 20;
           ballY = playerY + paddleHeight / 2;
           ballSpeedX = 10;
@@ -617,7 +624,7 @@ export default function PingpongGame() {
               console.log("發球音效播放失敗：", error);
             }
           }
-        } else if (!awaitingServe) {
+        } else if (!awaitingServe && gameStarted) {
           currentPlayerImg = playerImg2;
           playerImgSwitchTimer = 15;
         }
