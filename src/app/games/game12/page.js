@@ -154,7 +154,7 @@ export default function IceCreamCatchGame() {
       setPlayerX((x) => {
         let nx = x;
         if (keysPressed.current["ArrowLeft"]) {
-          nx = Math.max(0, x - 15);
+          nx = Math.max(0, x - 20);
         }
         if (keysPressed.current["ArrowRight"]) {
           nx = Math.min(windowSize.width - playerWidth, x + 15);
@@ -354,12 +354,12 @@ export default function IceCreamCatchGame() {
     let color = "#222";
 
     if (gameFinish) {
-      title = "主角已經吃飽了，非常心滿意足";
+      title = "雖然寫論文很燒腦，但是吃冰淇淋可以解決一切煩惱：）";
       content = `最終分數：${score}`;
       bgColor = "rgba(40,40,40,0.6)";
       color = "white";
     } else if (gameOver) {
-      title = "小明太生氣了，吃不到冰淇淋就不想吃了";
+      title = "寫論文已經夠苦了，還一直吃不到冰淇淋...";
       content = `最終分數：${score}`;
       bgColor = "rgba(40,40,40,0.6)";
       color = "white";
@@ -430,7 +430,7 @@ export default function IceCreamCatchGame() {
               color: "white",
               cursor: "pointer",
               marginBottom: 18,
-              fontWeight: "bold",
+
               letterSpacing: "1.2px",
             }}
           >
@@ -450,7 +450,7 @@ export default function IceCreamCatchGame() {
               background: "transparent",
               color: "white",
               cursor: "pointer",
-              fontWeight: "bold",
+
               letterSpacing: "1.2px",
             }}
           >
@@ -549,7 +549,7 @@ export default function IceCreamCatchGame() {
             >
               <span style={circleStyle}>1</span>
               <span>
-                讓小明吃足夠冰淇淋，吃到分數40分就心滿意足遊戲結束，過程中會有
+                讓玩家吃足夠冰淇淋，吃到分數40分就心滿意足遊戲結束，過程中會有
                 <img
                   src="/game12/bittermelon.png"
                   alt="苦瓜"
@@ -568,7 +568,7 @@ export default function IceCreamCatchGame() {
             >
               <span style={circleStyle}>2</span>
               <span>
-                只要小明沒吃到冰淇淋，或是吃到苦瓜，都會累積不滿意分數
+                只要玩家沒吃到冰淇淋，或是吃到苦瓜，都會累積不滿意分數
                 <img
                   src="/game12/player_angry.png"
                   alt="不滿意"
@@ -670,7 +670,7 @@ export default function IceCreamCatchGame() {
                   padding: "0 10px",
                   margin: "0 5px",
                   fontSize: 32,
-                  fontWeight: "bold",
+
                   boxShadow: "0 0 4px #fff",
                 }}
               >
@@ -743,7 +743,7 @@ export default function IceCreamCatchGame() {
                     ? "/game12/player_eat.png"
                     : "/game12/player.png"
                 }
-                alt="主角"
+                alt="玩家"
                 style={{
                   position: "absolute",
                   bottom: 0,
