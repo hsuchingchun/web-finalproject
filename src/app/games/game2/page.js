@@ -2,8 +2,6 @@
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef, useCallback } from "react";
 
-
-
 const COLORS = ["#f44336", "#ff9800", "#4caf50", "#2196f3"];
 const CUP_WIDTH = 72;
 
@@ -23,21 +21,122 @@ export default function Game2() {
   const [gameResult, setGameResult] = useState("");
   const [finalScore, setFinalScore] = useState(0);
   const [score, setScore] = useState(0);
+  const scoreRef = useRef(0);
   const shooterImg = useRef(null);
   const bgImage = useRef(null);
   const [status, setStatus] = useState(0);
-  
+  const lastFallTimeRef = useRef(Date.now());
+  const popSound = useRef(null);
+  const bgmAudio = useRef(null);
+  const [bgmMuted, setBgmMuted] = useState(false);
+
+  useEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
+
   useEffect(() => {
     const stored = localStorage.getItem("status");
     if (stored) setStatus(parseInt(stored));
+    popSound.current = new Audio("/game2/pop.mp3");
+    bgmAudio.current = new Audio("/game2/fun-bgm.mp3");
+    bgmAudio.current.loop = true;
+    bgmAudio.current.volume = 1;
   }, []);
+
+  useEffect(() => {
+    if (bgmAudio.current) {
+      bgmAudio.current.muted = bgmMuted;
+      if (!showIntro && !paused && !gameResult) {
+        bgmAudio.current.play().catch((err) => console.warn("BGM play error:", err));
+      } else {
+        bgmAudio.current.pause();
+      }
+    }
+  }, [showIntro, paused, gameResult, bgmMuted]);
+
+  const playPop = () => {
+    if (popSound.current) {
+      popSound.current.currentTime = 0;
+      popSound.current.play();
+    }
+  };
 
   const handleFinish = () => {
     const delta = 1;
     const newStatus = status + delta;
     localStorage.setItem("status", newStatus);
-    router.push("/");
+    if (bgmAudio.current) {
+      bgmAudio.current.pause();
+      bgmAudio.current.currentTime = 0;
+    }
+    setTimeout(() => {
+      router.push("/");
+    }, 2000);
   };
+
+  const handleShoot = (e) => {
+    if (paused || shooting || showIntro || gameResult) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const centerX = cupX;
+    const centerY = canvasSize.height - 90;
+    const dirX = mouseX - centerX;
+    const dirY = mouseY - centerY;
+    if (dirY > -10) return;
+    const length = Math.hypot(dirX, dirY);
+    const dx = (dirX / length) * 10;
+    const dy = (dirY / length) * 10;
+    setShooting({ x: centerX, y: centerY, dx, dy, color: nextColor });
+  };
+
+  const drawBubble = useCallback((ctx, x, y, color) => {
+    ctx.imageSmoothingEnabled = false;
+    ctx.beginPath();
+    ctx.arc(x, y, 16, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = "#00000055";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x - 8, y - 8, 6, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffffff88";
+    ctx.fill();
+  }, []);
+
+  const renderScene = useCallback((ctx) => {
+    if (bgImage.current?.complete) {
+      ctx.drawImage(bgImage.current, 0, 0, canvasSize.width, canvasSize.height);
+    } else {
+      ctx.fillStyle = "#90caf9";
+      ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
+    }
+    for (const b of bubbles) {
+      drawBubble(ctx, b.x, b.y, b.color);
+    }
+    if (shooting) {
+      for (let i = 0; i < 10; i++) {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(
+          shooting.x - shooting.dx * i * 5,
+          shooting.y - shooting.dy * i * 5,
+          2, 2
+        );
+      }
+      drawBubble(ctx, shooting.x, shooting.y, shooting.color);
+    }
+    const cupY = canvasSize.height - 96;
+    if (shooterImg.current?.complete) {
+      ctx.drawImage(shooterImg.current, cupX - CUP_WIDTH / 2, cupY, CUP_WIDTH, 96);
+    }
+    if (nextColor) {
+      drawBubble(ctx, cupX + 7, cupY - 16, nextColor);
+    }
+    ctx.fillStyle = "#1a237e";
+    ctx.fillRect(0, 0, 16, canvasSize.height);
+    ctx.fillRect(canvasSize.width - 16, 0, 16, canvasSize.height);
+  }, [bubbles, shooting, nextColor, canvasSize, drawBubble, cupX]);
 
   useEffect(() => {
     const resize = () => {
@@ -96,60 +195,6 @@ export default function Game2() {
     setNextColor(COLORS[Math.floor(Math.random() * COLORS.length)]);
   }, [canvasSize]);
 
-  const drawBubble = useCallback((ctx, x, y, color) => {
-    ctx.imageSmoothingEnabled = false;
-    ctx.beginPath();
-    ctx.arc(x, y, 16, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
-    ctx.strokeStyle = "#00000055";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(x - 8, y - 8, 6, 0, Math.PI * 2);
-    ctx.fillStyle = "#ffffff88";
-    ctx.fill();
-  }, []);
-
-  const renderScene = useCallback((ctx) => {
-    if (bgImage.current?.complete) {
-      ctx.drawImage(bgImage.current, 0, 0, canvasSize.width, canvasSize.height);
-    } else {
-      ctx.fillStyle = "#90caf9";
-      ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
-    }
-
-    for (const b of bubbles) {
-      drawBubble(ctx, b.x, b.y, b.color);
-    }
-
-    if (shooting) {
-      for (let i = 0; i < 10; i++) {
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(
-          shooting.x - shooting.dx * i * 5,
-          shooting.y - shooting.dy * i * 5,
-          2, 2
-        );
-      }
-      drawBubble(ctx, shooting.x, shooting.y, shooting.color);
-    }
-
-    const cupY = canvasSize.height - 96;
-
-    if (shooterImg.current?.complete) {
-      ctx.drawImage(shooterImg.current, cupX - CUP_WIDTH / 2, cupY, CUP_WIDTH, 96);
-    }
-
-    if (nextColor) {
-      drawBubble(ctx, cupX + 7, cupY - 16, nextColor);
-    }
-
-    ctx.fillStyle = "#1a237e";
-    ctx.fillRect(0, 0, 16, canvasSize.height);
-    ctx.fillRect(canvasSize.width - 16, 0, 16, canvasSize.height);
-  }, [bubbles, shooting, nextColor, canvasSize, drawBubble, cupX]);
-
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -176,6 +221,7 @@ export default function Game2() {
           const removed = removeMatchingBubbles(updatedBubbles, newBubble);
           const removedCount = updatedBubbles.length - removed.length;
           if (removedCount >= 3) {
+            playPop();
             const gained = 10 + (removedCount - 3) * 2;
             setScore((prevScore) => prevScore + gained);
             setComboText("+" + gained);
@@ -193,27 +239,35 @@ export default function Game2() {
   }, [shooting, bubbles, paused, showIntro, gameResult]);
 
   useEffect(() => {
-    if (stepCount > 0 && stepCount % Math.max(5 - Math.floor(stepCount / 20), 2) === 0) {
-      setBubbles(prev => {
-        const moved = prev.map(b => ({ ...b, y: b.y + 48 }));
-        const touchBottom = moved.some(b => b.y + 16 >= canvasSize.height - 96);
-        if (touchBottom) {
-          setGameResult("Game Over");
-          setFinalScore(score);
-          return prev;
-        }
-        return moved;
-      });
-    }
-  }, [stepCount]);
+    let frameId;
+    const loop = () => {
+      const now = Date.now();
+      if (!paused && !showIntro && !gameResult && now - lastFallTimeRef.current >= 15000) {
+        setBubbles((prev) => {
+          const moved = prev.map((b) => ({ ...b, y: b.y + 48 }));
+          const touchBottom = moved.some((b) => b.y + 16 >= canvasSize.height - 96);
+          if (touchBottom) {
+            setGameResult("Game Over");
+            setFinalScore(score);
+            return prev;
+          }
+          return moved;
+        });
+        lastFallTimeRef.current = now;
+      }
+      frameId = requestAnimationFrame(loop);
+    };
+    frameId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(frameId);
+  }, [paused, showIntro, gameResult, canvasSize.height, score]);
 
   useEffect(() => {
     if (paused || showIntro || gameResult) return;
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          setGameResult("Time's Up");
-          setFinalScore(score);
+          setFinalScore(scoreRef.current);
+          setTimeout(() => setGameResult("Time's Up"), 100);
           return 0;
         }
         return prev - 1;
@@ -240,34 +294,6 @@ export default function Game2() {
     return match.length >= 3 ? all.filter(b => !match.includes(b)) : all;
   };
 
-  const handleShoot = (e) => {
-    if (paused || shooting || showIntro || gameResult) return;
-    const rect = canvasRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    const centerX = cupX;
-    const centerY = canvasSize.height - 90;
-    const dirX = mouseX - centerX;
-    const dirY = mouseY - centerY;
-    if (dirY > -10) return;
-    const length = Math.hypot(dirX, dirY);
-    const dx = (dirX / length) * 10;
-    const dy = (dirY / length) * 10;
-    setShooting({ x: centerX, y: centerY, dx, dy, color: nextColor });
-  };
-
-  const handleRestart = () => {
-    setStepCount(0);
-    setTimeLeft(60);
-    setPaused(false);
-    setGameResult("");
-    setFinalScore(0);
-    setScore(0);
-    setShooting(null);
-    setShowIntro(true);
-    setCanvasSize({ width: window.innerWidth, height: window.innerHeight });
-  };
-
   return (
     <div className="w-screen h-screen overflow-hidden relative bg-blue-200">
       <canvas
@@ -287,6 +313,7 @@ export default function Game2() {
           if (ctx) renderScene(ctx);
         }}
       />
+
       {!showIntro && (
         <div className="absolute top-4 left-4 px-4 py-2 bg-white/80 text-black rounded-xl shadow-md text-base font-bold">
           Score: {score} ｜ Time: {timeLeft}s
@@ -300,34 +327,44 @@ export default function Game2() {
           {paused ? "繼續" : "暫停"}
         </button>
       )}
+      {!showIntro && (
+        <button
+          className="absolute bottom-4 left-4 px-5 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-xl shadow-md text-base font-semibold"
+          onClick={() => setBgmMuted((prev) => !prev)}
+        >
+          {bgmMuted ? "🔇" : "🔊"}
+        </button>
+      )}
+
       {showIntro && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-white/90 to-sky-100/80 text-black p-10 rounded-xl shadow-2xl border border-white">
-        <h1 className="text-4xl font-bold mb-6 text-indigo-800 drop-shadow-sm">🎯 遊戲說明</h1>
-        <ul className="text-lg mb-6 list-disc list-inside space-y-2 text-gray-800">
-          <li>使用左右鍵移動珍奶寶寶，點擊畫面發射珍珠</li>
-          <li>三顆以上相同顏色的珍珠相連即可消除</li>
-          <li>珍珠碰到底部時，遊戲將會結束</li>
-          <li>請在 60 秒內盡量消除更多珍珠以取得高分</li>
-        </ul>
-        <h2 className="text-2xl font-semibold text-indigo-700 mb-2">📈 計分方式</h2>
-        <p className="text-lg text-center text-gray-700 mb-8">
-          成功消除 <span className="text-green-600 font-bold">3</span> 顆泡泡得 <span className="text-green-600 font-bold">10</span> 分<br />
-          每多消除 <span className="text-green-600 font-bold">1</span> 顆額外加 <span className="text-green-600 font-bold">2</span> 分
-        </p>
-        <button
-          className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white text-xl rounded-xl shadow-lg transition-transform hover:scale-105"
-          onClick={() => setShowIntro(false)}
-        
+          <h1 className="text-4xl font-bold mb-6 text-indigo-800 drop-shadow-sm">🎯 遊戲說明</h1>
+          <ul className="text-lg mb-6 list-disc list-inside space-y-2 text-gray-800">
+            <li>使用左右鍵移動珍奶寶寶，點擊畫面發射珍珠</li>
+            <li>三顆以上相同顏色的珍珠相連即可消除</li>
+            <li>珍珠碰到底部時，遊戲將會結束</li>
+            <li>請在 60 秒內盡量消除更多珍珠以取得高分</li>
+          </ul>
+          <h2 className="text-2xl font-semibold text-indigo-700 mb-2">📈 計分方式</h2>
+          <p className="text-lg text-center text-gray-700 mb-8">
+            成功消除 <span className="text-green-600 font-bold">3</span> 顆泡泡得 <span className="text-green-600 font-bold">10</span> 分<br />
+            每多消除 <span className="text-green-600 font-bold">1</span> 顆額外加 <span className="text-green-600 font-bold">2</span> 分
+          </p>
+          <button
+            className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white text-xl rounded-xl shadow-lg transition-transform hover:scale-105"
+            onClick={() => setShowIntro(false)}
           >
             開始遊戲
           </button>
         </div>
       )}
+
       {comboText && (
         <div className="absolute inset-0 flex items-center justify-center text-5xl text-red-500 font-extrabold animate-bounce drop-shadow-lg">
           {comboText}
         </div>
       )}
+
       {gameResult && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 text-white text-4xl font-bold">
           {gameResult}

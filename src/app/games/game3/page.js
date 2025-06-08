@@ -2,10 +2,14 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import Head from "next/head";
+import Script from "next/script";
+// window.p5 = p5;
+// import "p5/lib/addons/p5.sound";
 
 const ReactP5Wrapper = dynamic(
-  () => import("@p5-wrapper/react").then((mod) => mod.ReactP5Wrapper),
+  () => import("react-p5-wrapper").then((mod) => mod.ReactP5Wrapper),
   { ssr: false }
 );
 
@@ -25,11 +29,13 @@ const paddleHeight = 120; // 放大球拍高度
 const paddleWidth = 120; // 放大球拍寬度
 const winningScore = 11;
 let gameOver = false;
-let winner = "";
+let winner = null;
 let serveTurn = "player";
 let serveCountdown = 0;
 let awaitingServe = true;
 let gameStarted = false;
+let isMuted = false;
+let hasPlayedEndSound = false;
 
 // 新增：記錄上一幀的位置
 let lastPlayerY = 0;
@@ -51,6 +57,13 @@ let scordBoardImg;
 let playerTurnImg;
 let professorTurnImg;
 
+// 音效資源
+let serveSound;
+let playerHitSound;
+let professorHitSound;
+let loseSound;
+let successSound;
+
 //字體
 let customFont;
 
@@ -68,10 +81,19 @@ export default function PingpongGame() {
   //主遊戲操控
   const router = useRouter();
   const [status, setStatus] = useState(0);
+  const audioRef = useRef(null);
+  const [hasInteracted, setHasInteracted] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem("status");
-    if (stored) setStatus(parseInt(stored));
+    // 重置遊戲狀態
+    gameStarted = false;
+    gameOver = false;
+    winner = null;
+    playerScore = 0;
+    aiScore = 0;
+    awaitingServe = true;
+    serveTurn = "player";
+    serveCount = 0;
   }, []);
 
   const handleFinish = (isWin) => {
@@ -85,9 +107,8 @@ export default function PingpongGame() {
   //桌球遊戲變化
   const sketch = (p5) => {
     p5.preload = () => {
-      //
-      customFont = p5.loadFont("/fonts/aura.ttf");
       try {
+        customFont = p5.loadFont("/fonts/aura.ttf");
         backgroundImg = p5.loadImage("/game3/background1.png");
         tableImg = p5.loadImage("/game3/table2.png");
         playerImg = p5.loadImage("/game3/player1.png");
@@ -102,8 +123,31 @@ export default function PingpongGame() {
         professorTurnImg = p5.loadImage("/game3/professor_turn.png");
         currentPlayerImg = playerImg;
         currentProfessorImg = professorImg;
+
+        if (typeof window.p5?.SoundFile === "function") {
+          //   bgm = new window.p5.SoundFile("/game3/game3_bgm.mp3", () => {
+          //     // 在音頻加載完成後設置循環播放
+          //     if (bgm) {
+          //       bgm.setVolume(0.8);
+          //       bgm.loop();
+          //     }
+          //   });
+          serveSound = new window.p5.SoundFile("/game3/serve.mp3");
+          playerHitSound = new window.p5.SoundFile("/game3/pingpong1-1.mp3");
+          professorHitSound = new window.p5.SoundFile("/game3/pingpong2-1.mp3");
+          loseSound = new window.p5.SoundFile("/game3/lose.mp3");
+          successSound = new window.p5.SoundFile("/game3/success.mp3");
+          // 設置音效音量
+          if (serveSound) serveSound.setVolume(1);
+          if (playerHitSound) playerHitSound.setVolume(1);
+          if (professorHitSound) professorHitSound.setVolume(1);
+          if (loseSound) loseSound.setVolume(0.5);
+          if (successSound) successSound.setVolume(0.5);
+        } else {
+          console.warn("p5.sound 尚未正確載入");
+        }
       } catch (error) {
-        console.log("圖片載入失敗，使用基本圖形代替");
+        console.log("圖片或音效載入失敗：", error);
       }
     };
 
@@ -121,12 +165,45 @@ export default function PingpongGame() {
     p5.setup = () => {
       p5.createCanvas(p5.windowWidth, p5.windowHeight);
       p5.textFont(customFont);
+
+      // 重置所有遊戲狀態
+      playerScore = 0;
+      aiScore = 0;
+      gameOver = false;
+      winner = null;
+      awaitingServe = true;
+      serveTurn = "player";
+      serveCount = 0;
+      isMuted = false;
+      hasPlayedEndSound = false;
+
+      // 重置球的位置和速度
+      ballX = p5.windowWidth / 2;
+      ballY = p5.windowHeight / 2;
+      ballSpeedX = 0;
+      ballSpeedY = 0;
+
+      // 重置玩家位置
+      playerY = p5.windowHeight / 2;
+
+      // 重置教授位置
+      aiY = p5.windowHeight / 2;
+
       // 初始化桌子位置
       table.x = (p5.windowWidth - table.width) / 2;
       table.y = (p5.windowHeight - table.height) / 2;
+
       // 初始化碰撞區域位置
       tableCollision.x = table.x;
       tableCollision.y = table.y + 10; // 向上偏移10px
+
+      // 重置音效狀態
+      // if (serveSound) serveSound.setVolume(1);
+      // if (playerHitSound) playerHitSound.setVolume(1);
+      // if (professorHitSound) professorHitSound.setVolume(1);
+      // if (loseSound) loseSound.setVolume(0.5);
+      // if (successSound) successSound.setVolume(0.5);
+
       resetPositions(p5);
     };
 
@@ -168,6 +245,13 @@ export default function PingpongGame() {
             successImg.width / 3,
             successImg.height / 3
           );
+          if (successSound && !successSound.isPlaying()) {
+            try {
+              successSound.play();
+            } catch (error) {
+              console.log("成功音效播放失敗：", error);
+            }
+          }
         } else {
           p5.image(
             loseImg,
@@ -176,6 +260,13 @@ export default function PingpongGame() {
             loseImg.width / 3,
             loseImg.height / 3
           );
+          if (loseSound && !loseSound.isPlaying()) {
+            try {
+              loseSound.play();
+            } catch (error) {
+              console.log("失敗音效播放失敗：", error);
+            }
+          }
         }
         return;
       }
@@ -267,6 +358,13 @@ export default function PingpongGame() {
             ballSpeedX = -8;
             ballSpeedY = Math.random(-4, 4);
             awaitingServe = false;
+            if (serveSound) {
+              try {
+                serveSound.play();
+              } catch (error) {
+                console.log("發球音效播放失敗：", error);
+              }
+            }
           }
         }
       }
@@ -299,12 +397,17 @@ export default function PingpongGame() {
       if (playerScore >= winningScore || aiScore >= winningScore) {
         gameOver = true;
         winner = playerScore > aiScore ? "player" : "ai";
+        // 停止背景音樂
+        if (audioRef.current) {
+          audioRef.current.pause();
+        }
       }
 
       if (!awaitingServe) {
         ballX += ballSpeedX;
         ballY += ballSpeedY;
 
+        // 檢查球是否在桌面上彈跳
         if (
           ballY + 7 >= tableCollision.y &&
           ballY + 7 <= tableCollision.y + tableCollision.height
@@ -316,20 +419,16 @@ export default function PingpongGame() {
           }
         }
 
-        if (
-          bounceCountPlayer > 1 ||
-          (ballX > table.x + table.width / 2 &&
-            (ballX < table.x || ballX > table.x + table.width))
-        ) {
-          aiScore++;
-          switchServe(p5);
-        }
-        if (
-          bounceCountAI > 1 ||
-          (ballX < table.x + table.width / 2 &&
-            (ballX < table.x || ballX > table.x + table.width))
-        ) {
-          playerScore++;
+        // 檢查是否得分
+        if (ballX < table.x || ballX > table.x + table.width) {
+          // 球出界時，根據球的位置決定得分方
+          if (ballX < table.x) {
+            // 球從左側出界，AI得分
+            aiScore++;
+          } else {
+            // 球從右側出界，玩家得分
+            playerScore++;
+          }
           switchServe(p5);
         }
 
@@ -337,9 +436,12 @@ export default function PingpongGame() {
           ballY < tableCollision.y ||
           ballY > tableCollision.y + tableCollision.height
         ) {
+          // 球從上下出界時，根據球的位置決定得分方
           if (ballX < table.x + table.width / 2) {
+            // 球在左半場出界，AI得分
             aiScore++;
           } else {
+            // 球在右半場出界，玩家得分
             playerScore++;
           }
           switchServe(p5);
@@ -404,43 +506,51 @@ export default function PingpongGame() {
       ) {
         const relY = playerY + paddleHeight / 2 - ballY;
         const norm = relY / (paddleHeight / 2);
-        // 基礎角度：根據擊球位置決定
-        const baseAngle = norm * (Math.PI / 6); // 增加基礎角度範圍
-        // 速度影響：根據球拍移動速度調整
-        const velocityFactor = playerVelocity * 0.2; // 增加速度影響
-        // 確保球往球桌內打：限制角度範圍
+        const baseAngle = norm * (Math.PI / 8);
+        const velocityFactor = playerVelocity * 0.1;
         const angle = Math.max(
-          Math.min(baseAngle + velocityFactor, Math.PI / 4),
-          -Math.PI / 4
+          Math.min(baseAngle + velocityFactor, Math.PI / 6),
+          -Math.PI / 6
         );
-        const speed = 8;
+        const speed = 12;
         ballSpeedX = speed * Math.cos(angle);
         ballSpeedY = -speed * Math.sin(angle);
         ballX = playerPaddleX + paddleWidth + 7;
         bounceCountPlayer = 0;
         currentPlayerImg = playerImg2;
         playerImgSwitchTimer = 15;
+        if (playerHitSound) {
+          try {
+            playerHitSound.play();
+          } catch (error) {
+            console.log("擊球音效播放失敗：", error);
+          }
+        }
       }
 
       if (ballX + 7 > aiPaddleX && ballY > aiY && ballY < aiY + paddleHeight) {
         const relY = aiY + paddleHeight / 2 - ballY;
         const norm = relY / (paddleHeight / 2);
-        // 基礎角度：根據擊球位置決定
-        const baseAngle = norm * (Math.PI / 6); // 增加基礎角度範圍
-        // 速度影響：根據球拍移動速度調整
-        const velocityFactor = aiVelocity * 0.2; // 增加速度影響
-        // 確保球往球桌內打：限制角度範圍
+        const baseAngle = norm * (Math.PI / 6);
+        const velocityFactor = aiVelocity * 0.2;
         const angle = Math.max(
           Math.min(baseAngle + velocityFactor, Math.PI / 4),
           -Math.PI / 4
         );
-        const speed = 8;
+        const speed = 12;
         ballSpeedX = -speed * Math.cos(angle);
         ballSpeedY = -speed * Math.sin(angle);
         ballX = aiPaddleX - 7;
         bounceCountAI = 0;
         currentProfessorImg = professorImg2;
         professorImgSwitchTimer = 15;
+        if (professorHitSound) {
+          try {
+            professorHitSound.play();
+          } catch (error) {
+            console.log("擊球音效播放失敗：", error);
+          }
+        }
       }
 
       if (ballX < table.x || ballX > table.x + table.width) {
@@ -481,19 +591,40 @@ export default function PingpongGame() {
 
     p5.keyPressed = () => {
       if (p5.key === " ") {
+        // 第一次按空白鍵時開始播放音樂
+        if (!hasInteracted && audioRef.current) {
+          audioRef.current.play().catch((error) => {
+            console.log("音頻播放失敗：", error);
+          });
+          setHasInteracted(true);
+        }
+
+        // 遊戲開始邏輯
         if (!gameStarted) {
           gameStarted = true;
+          awaitingServe = true;
+          serveTurn = "player";
+          serveCount = 0;
           return;
         }
-        if (awaitingServe && serveTurn === "player") {
+
+        // 發球和玩家動作邏輯
+        if (awaitingServe && serveTurn === "player" && gameStarted) {
           ballX = table.x + 20;
           ballY = playerY + paddleHeight / 2;
-          ballSpeedX = 6;
-          ballSpeedY = Math.random() * 4 - 2;
+          ballSpeedX = 10;
+          ballSpeedY = Math.random() * 6 - 3;
           awaitingServe = false;
           currentPlayerImg = playerImg2;
           playerImgSwitchTimer = 15;
-        } else if (!awaitingServe) {
+          if (serveSound) {
+            try {
+              serveSound.play();
+            } catch (error) {
+              console.log("發球音效播放失敗：", error);
+            }
+          }
+        } else if (!awaitingServe && gameStarted) {
           currentPlayerImg = playerImg2;
           playerImgSwitchTimer = 15;
         }
@@ -518,7 +649,54 @@ export default function PingpongGame() {
     };
   };
 
-  return <ReactP5Wrapper sketch={sketch} />;
+  return (
+    <>
+      {/* 確保 p5.sound 能被加入 */}
+      <Script
+        src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"
+        strategy="beforeInteractive"
+      />
+      <Script
+        src="/game3/p5.sound.min.js"
+        strategy="beforeInteractive"
+        onLoad={() => {
+          console.log(
+            "p5.sound loaded:",
+            typeof window.p5?.SoundFile === "function"
+          );
+        }}
+      />
+      {/* audio 僅初始化一次，不重新建立 */}
+      <audio
+        ref={audioRef}
+        src="/game3/game3_bgm.mp3"
+        loop
+        style={{ display: "none" }}
+      />
+      <ReactP5Wrapper sketch={sketch} />
+      <button
+        onClick={() => router.push("/")}
+        className="fixed top-5 left-5 z-[1000] px-5 py-2 bg-white/60 text-base font-bold cursor-pointer rounded-4xl"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="icon icon-tabler icons-tabler-outline icon-tabler-chevrons-left "
+        >
+          <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+          <path d="M11 7l-5 5l5 5" />
+          <path d="M17 7l-5 5l5 5" />
+        </svg>
+      </button>
+    </>
+  );
 }
 
 const resetPositions = (p5) => {

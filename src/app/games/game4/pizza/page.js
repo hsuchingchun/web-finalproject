@@ -19,14 +19,16 @@ export default function PizzaGame() {
   const [showIntro, setShowIntro] = useState(true);
   const intervalRefs = useRef({ timer: null, dropper: null });
 
+  // ✅ 修正 useEffect 錯誤：依賴陣列長度固定
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (gameOver || showIntro) return; // 禁止在結束或說明頁時移動
       if (e.key === 'ArrowLeft') setPlayerX((x) => Math.max(0, x - 20));
-      if (e.key === 'ArrowRight') setPlayerX((x) => Math.min(660, x + 20));
+      if (e.key === 'ArrowRight') setPlayerX((x) => Math.min(550, x + 20)); // 限制右側邊界
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [gameOver, showIntro]);
 
   useEffect(() => {
     if (gameOver || showIntro) return;
@@ -146,9 +148,9 @@ export default function PizzaGame() {
             <h3 className="intro-title">✨ RULES ✨</h3>
             <p className="intro-sub">
               整天待在研究室已經累鼠了...QQ<br />
-              我需要逃跑！我需要熱量！<br />
-              每一片披薩都要有肉腸！素的我不要！<br />
-              沒有吃到不寫論文了！
+              我需要逃跑！我需要熱量！我要吃披薩！<br />
+              每一片都要有肉腸！素的我不要！<br />
+              沒有吃到不寫論文了！！！😠
             </p>
             <hr className="intro-divider" />
             <p className="intro-detail">30 秒內 ⭠、⭢ 移動人物，接住肉腸披薩！</p>
@@ -178,6 +180,8 @@ export default function PizzaGame() {
     </div>
   );
 }
+
+
 
 
 

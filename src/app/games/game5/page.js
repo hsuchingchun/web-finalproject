@@ -1,15 +1,15 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 
 const ReactP5Wrapper = dynamic(
-  () => import("@p5-wrapper/react").then((mod) => mod.ReactP5Wrapper),
+  () => import("react-p5-wrapper").then((mod) => mod.ReactP5Wrapper),
   { ssr: false }
 );
 
-const sketch = (p, handleFinish) => {
+const sketch = (p, handleFinish, audioRef) => {
   let bgImg, instructImg, continueImg, shootPromptImg, exitImg, replayImg;
   const countdownImgs = [],
     scoreboardImgs = [],
@@ -37,27 +37,8 @@ const sketch = (p, handleFinish) => {
   let playerX = 0,
     playerY = 0;
 
-  const ui = {
-    canvas: { w: 1920, h: 1080 },
-    instruction: { x: 960, y: 540, w: 1920, h: 1080 },
-    countdown: { x: 960, y: 540, w: 1920, h: 1080 },
-    roundLabel: [
-      { x: 335, y: 420, w: 350, h: 150 },
-      { x: 335, y: 420, w: 350, h: 150 },
-      { x: 335, y: 420, w: 350, h: 150 },
-      { x: 335, y: 420, w: 350, h: 150 },
-      { x: 350, y: 425, w: 380, h: 165 },
-    ],
-    scoreboard: { x: 335, y: 560, w: 360, h: 180 },
-    target: { y: 380, w: 250, h: 1232 },
-    playerStand: { x: 350, y: 820, w: 250, h: 350 },
-    playerShoot: { x: 350, y: 820, w: 300, h: 350 },
-    bullet: { w: 60, h: 60 },
-    resultPrompt: { x: 960, y: 540, w: 2304, h: 1296 },
-    continue: { x: 1700, y: 975, w: 300, h: 100 },
-    shootPrompt: { x: 1000, y: 975, w: 450, h: 150 },
-    resultBtn: { y: 900, w: 480, h: 150, exitX: 650, replayX: 1270 },
-  };
+  let scaleX = 1;
+  let scaleY = 1;
 
   const urls = {
     bg: "https://i.imgur.com/wERjc7P.jpeg",
@@ -113,13 +94,24 @@ const sketch = (p, handleFinish) => {
   };
 
   p.setup = () => {
-    p.createCanvas(ui.canvas.w, ui.canvas.h);
+    p.createCanvas(p.windowWidth, p.windowHeight);
     p.imageMode(p.CENTER);
-    playerX = ui.playerStand.x;
-    playerY = ui.playerStand.y;
+    scaleX = p.width / 1920;
+    scaleY = p.height / 1080;
+    playerX = 350 * scaleX;
+    playerY = 820 * scaleY;
     targetX = p.width * 0.8;
-    targetBaseY = ui.target.y;
+    targetBaseY = 380 * scaleY;
     targetY = targetBaseY;
+  };
+
+  p.windowResized = () => {
+    p.resizeCanvas(p.windowWidth, p.windowHeight);
+    scaleX = p.width / 1920;
+    scaleY = p.height / 1080;
+    playerX = 350 * scaleX;
+    playerY = 820 * scaleY;
+    targetBaseY = 380 * scaleY;
   };
 
   p.draw = () => {
@@ -127,30 +119,12 @@ const sketch = (p, handleFinish) => {
     p.image(bgImg, p.width / 2, p.height / 2, p.width, p.height);
 
     if (state === "instructions") {
-      p.image(
-        instructImg,
-        ui.instruction.x,
-        ui.instruction.y,
-        ui.instruction.w,
-        ui.instruction.h
-      );
-      p.image(
-        continueImg,
-        ui.continue.x,
-        ui.continue.y,
-        ui.continue.w,
-        ui.continue.h
-      );
+      p.image(instructImg, p.width / 2, p.height / 2, 1920 * scaleX, 1080 * scaleY);
+      p.image(continueImg, 1700 * scaleX, 975 * scaleY, 300 * scaleX, 100 * scaleY);
     } else if (state === "countdown") {
       const idx = p.floor((p.millis() - countdownStart) / 1000);
       if (idx < 3) {
-        p.image(
-          countdownImgs[idx],
-          ui.countdown.x,
-          ui.countdown.y,
-          ui.countdown.w,
-          ui.countdown.h
-        );
+        p.image(countdownImgs[idx], p.width / 2, p.height / 2, p.width, p.height);
       } else {
         state = "round";
         roundNumber = 1;
@@ -160,60 +134,48 @@ const sketch = (p, handleFinish) => {
         targetX = p.width * 0.8;
         targetDir = 1;
         targetAngle = 0;
-        targetBaseY = ui.target.y;
+        targetBaseY = 380 * scaleY;
         targetY = targetBaseY;
       }
     } else if (state === "round") {
-      const lbl = ui.roundLabel[roundNumber - 1];
-      p.image(roundImgs[roundNumber - 1], lbl.x, lbl.y, lbl.w, lbl.h);
-      p.image(
-        scoreboardImgs[score],
-        ui.scoreboard.x,
-        ui.scoreboard.y,
-        ui.scoreboard.w,
-        ui.scoreboard.h
-      );
+      const roundImg = roundImgs[roundNumber - 1];
+      let labelX = 335 * scaleX;
+      let labelY = 420 * scaleY;
+      let labelW = 350 * scaleX;
+      let labelH = 150 * scaleY;
+
+      if (roundNumber === 5) {
+        labelX = 350 * scaleX;
+        labelY = 425 * scaleY;
+        labelW = 380 * scaleX;
+        labelH = 165 * scaleY;
+      }
+
+      p.image(roundImg, labelX, labelY, labelW, labelH);
+      p.image(scoreboardImgs[score], 335 * scaleX, 560 * scaleY, 360 * scaleX, 180 * scaleY);
 
       targetX += speeds[roundNumber - 1] * targetDir;
       if (targetX < p.width * 0.65 || targetX > p.width * 0.95) targetDir *= -1;
       targetAngle += speeds[roundNumber - 1] * 0.007;
-      targetY = targetBaseY + waveAmplitude * p.sin(targetAngle * 2) - 50;
-      p.image(ropeTargetImg, targetX, targetY, ui.target.w, ui.target.h);
+      targetY = targetBaseY + waveAmplitude * p.sin(targetAngle * 2) * scaleY - 50 * scaleY;
+      p.image(ropeTargetImg, targetX, targetY, 250 * scaleX, 1232 * scaleY);
 
       if (!hasShot) {
-        p.image(
-          playerStandImg,
-          ui.playerStand.x,
-          ui.playerStand.y,
-          ui.playerStand.w,
-          ui.playerStand.h
-        );
-        p.image(
-          shootPromptImg,
-          ui.shootPrompt.x,
-          ui.shootPrompt.y,
-          ui.shootPrompt.w,
-          ui.shootPrompt.h
-        );
+        p.image(playerStandImg, playerX, playerY, 250 * scaleX, 350 * scaleY);
+        p.image(shootPromptImg, 1000 * scaleX, 975 * scaleY, 450 * scaleX, 150 * scaleY);
       } else {
-        p.image(
-          playerShootImg,
-          ui.playerShoot.x,
-          ui.playerShoot.y,
-          ui.playerShoot.w,
-          ui.playerShoot.h
-        );
+        p.image(playerShootImg, playerX, playerY, 300 * scaleX, 350 * scaleY);
       }
 
       if (bulletActive) {
-        bulletX += 25;
+        bulletX += 25 * scaleX;
         const by = playerY;
-        p.image(bulletImg, bulletX, by, ui.bullet.w, ui.bullet.h);
-        const regionH = ui.target.h * 0.25,
+        p.image(bulletImg, bulletX, by, 60 * scaleX, 60 * scaleY);
+        const regionH = 1232 * scaleY * 0.25,
           cx = targetX,
-          cy = targetY + ui.target.h / 2 - regionH / 2;
-        const effR = ui.target.w * 0.3,
-          bR = ui.bullet.w;
+          cy = targetY + (1232 * scaleY) / 2 - regionH / 2;
+        const effR = 250 * scaleX * 0.3,
+          bR = 60 * scaleX;
         if (p.dist(bulletX, by, cx, cy) <= effR + bR) {
           score++;
           bulletActive = false;
@@ -235,27 +197,9 @@ const sketch = (p, handleFinish) => {
       }
     } else if (state === "result") {
       const img = score >= 3 ? successImg : failureImg;
-      p.image(
-        img,
-        ui.resultPrompt.x,
-        ui.resultPrompt.y,
-        ui.resultPrompt.w,
-        ui.resultPrompt.h
-      );
-      p.image(
-        exitImg,
-        ui.resultBtn.exitX,
-        ui.resultBtn.y,
-        ui.resultBtn.w,
-        ui.resultBtn.h
-      );
-      p.image(
-        replayImg,
-        ui.resultBtn.replayX,
-        ui.resultBtn.y,
-        ui.resultBtn.w,
-        ui.resultBtn.h
-      );
+      p.image(img, p.width / 2, p.height / 2, 2304 * scaleX, 1296 * scaleY);
+      p.image(exitImg, 650 * scaleX, 900 * scaleY, 480 * scaleX, 150 * scaleY);
+      p.image(replayImg, 1270 * scaleX, 900 * scaleY, 480 * scaleX, 150 * scaleY);
     }
   };
 
@@ -263,10 +207,13 @@ const sketch = (p, handleFinish) => {
     if (state === "instructions" && ["C", "c"].includes(p.key)) {
       state = "countdown";
       countdownStart = p.millis();
+      if (audioRef?.current?.paused) {
+        audioRef.current.play().catch(() => {});
+      }
     } else if (state === "round" && !hasShot && ["C", "c"].includes(p.key)) {
       hasShot = true;
       bulletActive = true;
-      bulletX = ui.playerStand.x + ui.playerStand.w * 0.35;
+      bulletX = playerX + 250 * scaleX * 0.35;
     } else if (state === "result") {
       if (["C", "c"].includes(p.key)) {
         handleFinish(score >= 3);
@@ -282,13 +229,52 @@ const sketch = (p, handleFinish) => {
 export default function ShootingGamePage() {
   const router = useRouter();
   const [status, setStatus] = useState(0);
+  const audioRef = useRef(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("status");
     if (stored) setStatus(parseInt(stored));
+
+    audioRef.current = new Audio("https://raw.githubusercontent.com/hsuchingchun/web-finalproject/main/src/app/games/game5/ShootingGame.mp3");
+    audioRef.current.loop = true;
+    audioRef.current.volume = 0.8;
+    audioRef.current.play().catch(() => {});
+
+    // 靜音控制
+    const btn = document.getElementById("mute-button");
+    let isMuted = false;
+
+    const updateIcon = () => {
+      if (!btn) return;
+      btn.innerHTML = isMuted
+      btn.innerHTML = isMuted
+      ? `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`
+      : `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a9 9 0 0 1 0 14.14"/></svg>`;
+    };
+
+    btn.onclick = () => {
+      isMuted = !isMuted;
+      if (audioRef.current) audioRef.current.muted = isMuted;
+      updateIcon();
+    };
+
+    updateIcon();
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      if (btn) btn.onclick = null;
+    };
   }, []);
 
   const handleFinish = (isSuccess) => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+
     if (isSuccess) {
       const newStatus = status - 1;
       localStorage.setItem("status", newStatus);
@@ -307,7 +293,42 @@ export default function ShootingGamePage() {
         backgroundColor: "#000000",
       }}
     >
-      <ReactP5Wrapper sketch={(p) => sketch(p, handleFinish)} />
+      {/* 返回按鈕 */}
+      <button
+        onClick={() => {
+          if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+          }
+          router.push("/");
+        }}
+        className="fixed top-5 left-5 z-[1000] px-5 py-2 bg-white/60 text-base font-bold cursor-pointer rounded-4xl"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+          <path d="M11 7l-5 5l5 5" />
+          <path d="M17 7l-5 5l5 5" />
+        </svg>
+      </button>
+
+      {/* 聲音控制按鈕 */}
+      <div
+        id="mute-button"
+        className="fixed top-5 right-5 z-[1000] px-4 py-2 bg-white/60 text-base font-bold cursor-pointer rounded-4xl"
+        style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+      ></div>
+
+      <ReactP5Wrapper sketch={(p) => sketch(p, handleFinish, audioRef)} />
     </div>
   );
 }
