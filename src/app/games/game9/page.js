@@ -92,18 +92,6 @@ export default function Game9() {
         localStorage.setItem("status", newStatus.toString());
         return newStatus;
       });
-    } else {
-      // 輸的時候 status + 1（如果你想要懲罰的話）
-      // 或者保持不變（如果只有贏才改變狀態）
-      // 根據你的需求選擇以下其中一個：
-      // 選項1：輸的時候不改變 status（保持原樣）
-      // 什麼都不做
-      // 選項2：輸的時候 status + 1（懲罰）
-      // setStatus((prev) => {
-      //   const newStatus = prev + 1;
-      //   localStorage.setItem("status", newStatus.toString());
-      //   return newStatus;
-      // });
     }
   }, [clearAllIntervals]);
 
@@ -312,7 +300,7 @@ export default function Game9() {
       {gameOver ? (
         <div className="flex flex-col items-center gap-20">
           <Image
-            src={`/game9/${score >= 100 ? "win" : "lose"}.png`}
+            src={`/game9/${score >= 130 ? "win" : "lose"}.png`}
             alt="game result"
             width={700}
             height={300}
