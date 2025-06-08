@@ -125,13 +125,6 @@ export default function PingpongGame() {
         currentProfessorImg = professorImg;
 
         if (typeof window.p5?.SoundFile === "function") {
-          //   bgm = new window.p5.SoundFile("/game3/game3_bgm.mp3", () => {
-          //     // 在音頻加載完成後設置循環播放
-          //     if (bgm) {
-          //       bgm.setVolume(0.8);
-          //       bgm.loop();
-          //     }
-          //   });
           serveSound = new window.p5.SoundFile("/game3/serve.mp3");
           playerHitSound = new window.p5.SoundFile("/game3/pingpong1-1.mp3");
           professorHitSound = new window.p5.SoundFile("/game3/pingpong2-1.mp3");
@@ -196,13 +189,6 @@ export default function PingpongGame() {
       // 初始化碰撞區域位置
       tableCollision.x = table.x;
       tableCollision.y = table.y + 10; // 向上偏移10px
-
-      // 重置音效狀態
-      // if (serveSound) serveSound.setVolume(1);
-      // if (playerHitSound) playerHitSound.setVolume(1);
-      // if (professorHitSound) professorHitSound.setVolume(1);
-      // if (loseSound) loseSound.setVolume(0.5);
-      // if (successSound) successSound.setVolume(0.5);
 
       resetPositions(p5);
     };
@@ -651,7 +637,6 @@ export default function PingpongGame() {
 
   return (
     <>
-      {/* 確保 p5.sound 能被加入 */}
       <Script
         src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"
         strategy="beforeInteractive"
