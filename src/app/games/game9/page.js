@@ -5,6 +5,12 @@ import Image from "next/image";
 
 const arrowMapping = ["ArrowLeft", "ArrowUp", "ArrowDown", "ArrowRight"];
 const directions = ["left", "up", "down", "right"];
+const arrowTimings = [
+  2.1, 4, 5.4, 5.9, 6.9, 8.1, 8.4, 8.9, 11.9, 12.8, 13.6, 14.0, 14.3, 14.5,
+  15.8, 16.8, 17.9, 18.3, 18.7, 19.3, 20.3, 21.3, 22.3, 22.7, 23.1, 23.5, 24.4,
+  25.3, 26.3, 27, 27.5, 27.8, 29, 29.3, 29.6, 29.9,
+];
+const ARROW_TRAVEL_TIME = 2.2;
 
 function getRandomDirection() {
   const i = Math.floor(Math.random() * 4);
@@ -22,10 +28,8 @@ function generateArrow(id) {
   };
 }
 
-// 動態計算判定距離的函數
 const getJudgmentDistance = (zoneRect) => {
-  // 使用判定區域高度的比例來計算，而不是固定70像素
-  return zoneRect ? zoneRect.height * 0.7 : 70; // 0.7 可以根據需要調整
+  return zoneRect ? zoneRect.height * 0.7 : 70;
 };
 
 export default function Game9() {
@@ -37,250 +41,254 @@ export default function Game9() {
   const [hitEffects, setHitEffects] = useState([false, false, false, false]);
   const [gameActive, setGameActive] = useState(false);
   const [centerFeedback, setCenterFeedback] = useState(null);
+  const [isDinoFacingRight, setIsDinoFacingRight] = useState(false);
+  const [gameOver, setGameOver] = useState(false);
 
   const arrowIdRef = useRef(0);
   const scoreZoneRefs = useRef([null, null, null, null]);
-  const intervalRefs = useRef({
-    arrowGeneration: null,
-    arrowMovement: null,
-    arrowCleanup: null,
-  });
+  const intervalRefs = useRef({ arrowMovement: null, arrowCleanup: null });
   const gameFinishedRef = useRef(false);
-  const keyHandlerRef = useRef(null);
+  const audioRef = useRef(null);
+  const introAudioRef = useRef(null);
+  const currentScoreRef = useRef(0); // 新增：用來追蹤當前分數
 
-  // 清理所有 intervals 的函數
   const clearAllIntervals = useCallback(() => {
     Object.values(intervalRefs.current).forEach((interval) => {
       if (interval) clearInterval(interval);
     });
-    intervalRefs.current = {
-      arrowGeneration: null,
-      arrowMovement: null,
-      arrowCleanup: null,
-    };
+    intervalRefs.current = { arrowMovement: null, arrowCleanup: null };
   }, []);
+
+  // 更新 currentScoreRef 當 score 改變時
+  useEffect(() => {
+    currentScoreRef.current = score;
+  }, [score]);
 
   useEffect(() => {
     const stored = localStorage.getItem("status");
     if (stored) setStatus(parseInt(stored));
+    const interval = setInterval(
+      () => setIsDinoFacingRight((prev) => !prev),
+      2000
+    );
+    return () => clearInterval(interval);
   }, []);
 
   const handleFinish = useCallback(() => {
     if (gameFinishedRef.current) return;
     gameFinishedRef.current = true;
-
-    console.log("Game finished! Final score:", score);
-
     clearAllIntervals();
+    if (audioRef.current) audioRef.current.pause();
     setGameActive(false);
+    setGameOver(true);
 
-    setStatus((prevStatus) => {
-      const newStatus = prevStatus - 1;
-      localStorage.setItem("status", newStatus.toString());
-      console.log("Status updated from", prevStatus, "to", newStatus);
-      return newStatus;
-    });
+    // 使用 ref 來獲取最新的分數值
+    const finalScore = currentScoreRef.current;
 
-    setTimeout(() => {
-      router.push("/");
-    }, 100);
-  }, [score, router, clearAllIntervals]);
+    if (finalScore >= 100) {
+      // 贏的時候 status - 1
+      setStatus((prev) => {
+        const newStatus = prev - 1;
+        localStorage.setItem("status", newStatus.toString());
+        return newStatus;
+      });
+    } else {
+      // 輸的時候 status + 1（如果你想要懲罰的話）
+      // 或者保持不變（如果只有贏才改變狀態）
+      // 根據你的需求選擇以下其中一個：
+      // 選項1：輸的時候不改變 status（保持原樣）
+      // 什麼都不做
+      // 選項2：輸的時候 status + 1（懲罰）
+      // setStatus((prev) => {
+      //   const newStatus = prev + 1;
+      //   localStorage.setItem("status", newStatus.toString());
+      //   return newStatus;
+      // });
+    }
+  }, [clearAllIntervals]);
 
-  // 開始遊戲的函數
   const startGame = useCallback(() => {
     if (gameActive || gameFinishedRef.current) return;
-
-    console.log("Starting game...");
     setGameActive(true);
-
+    setGameOver(false);
+    setScore(0);
+    currentScoreRef.current = 0; // 重置分數 ref
     arrowIdRef.current = 0;
     setArrows([]);
-    setScore(0);
-
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play();
+    }
     clearAllIntervals();
 
-    // 箭頭生成
-    intervalRefs.current.arrowGeneration = setInterval(() => {
-      const currentId = arrowIdRef.current;
-      console.log("Generating arrow:", currentId);
-
-      if (currentId >= 25) {
-        clearInterval(intervalRefs.current.arrowGeneration);
-        intervalRefs.current.arrowGeneration = null;
-        console.log("All arrows generated, waiting for them to exit...");
-        return;
-      }
-
-      setArrows((prev) => [...prev, generateArrow(currentId)]);
-      arrowIdRef.current++;
-    }, 1000);
-
-    // 箭頭移動
     intervalRefs.current.arrowMovement = setInterval(() => {
       setArrows((prev) => prev.map((arrow) => ({ ...arrow, y: arrow.y + 10 })));
+      const currentTime = audioRef.current?.currentTime ?? 0;
+      while (
+        arrowIdRef.current < arrowTimings.length &&
+        arrowTimings[arrowIdRef.current] - currentTime <= ARROW_TRAVEL_TIME
+      ) {
+        const newArrow = generateArrow(arrowIdRef.current);
+        setArrows((prev) => [...prev, newArrow]);
+        arrowIdRef.current++;
+      }
     }, 30);
 
-    // 修正的箭頭清理和miss檢測
     intervalRefs.current.arrowCleanup = setInterval(() => {
       setArrows((prev) => {
-        const updated = prev.map((a) => {
+        return prev.map((a) => {
           if (a.status === "falling") {
             const directionIndex = directions.indexOf(a.direction);
             const zoneRect =
               scoreZoneRefs.current[directionIndex]?.getBoundingClientRect();
-
             if (zoneRect) {
               const zoneY = zoneRect.top + zoneRect.height / 2;
               let arrowHeight =
                 a.direction === "up" || a.direction === "down" ? 100 : 50;
               const arrowCenterY = a.y + arrowHeight / 2;
-
-              // 使用動態計算的判定距離
               const judgmentDistance = getJudgmentDistance(zoneRect);
-
-              // 如果箭頭中心剛好超過判定區域，且沒被按過，標記為missed
               if (arrowCenterY > zoneY + judgmentDistance && !a.hasPassedZone) {
                 setCenterFeedback("miss");
                 setTimeout(() => setCenterFeedback(null), 500);
                 return { ...a, status: "missed", hasPassedZone: true };
               }
             }
-
-            // 使用視窗高度的比例來判斷是否完全離開屏幕
             if (a.y > window.innerHeight * 0.9) {
               return { ...a, status: "missed" };
             }
           }
           return a;
         });
-
-        return updated;
       });
     }, 50);
-  }, [gameActive, handleFinish, clearAllIntervals]);
 
-  // 修正的鍵盤事件處理
+    const checkEnd = setInterval(() => {
+      if (audioRef.current && audioRef.current.ended) {
+        clearInterval(checkEnd);
+        setTimeout(() => {
+          handleFinish();
+        }, 1000);
+      }
+    }, 500);
+  }, [gameActive, clearAllIntervals, handleFinish]);
+
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (gameOver) {
+        if (e.code === "KeyC") {
+          window.location.reload();
+        } else if (e.code === "KeyD") {
+          router.push("/");
+        }
+        return;
+      }
+
       if (showIntro && (e.code === "Space" || e.key === " ")) {
         e.preventDefault();
         setShowIntro(false);
         return;
       }
 
-      const index = arrowMapping.indexOf(e.key);
-      if (index === -1 || showIntro || !gameActive) return;
+      if (!showIntro && !gameOver && gameActive) {
+        const index = arrowMapping.indexOf(e.key);
+        if (index === -1) return;
 
-      const zoneRect = scoreZoneRefs.current[index]?.getBoundingClientRect();
-      if (!zoneRect) return;
+        const zoneRect = scoreZoneRefs.current[index]?.getBoundingClientRect();
+        if (!zoneRect) return;
 
-      const zoneY = zoneRect.top + zoneRect.height / 2;
-      const judgmentDistance = getJudgmentDistance(zoneRect);
-      const perfectDistance = judgmentDistance * 0.5;
+        const zoneY = zoneRect.top + zoneRect.height / 2;
+        const judgmentDistance = getJudgmentDistance(zoneRect);
+        const perfectDistance = judgmentDistance * 0.5;
 
-      // 擊中效果
-      setHitEffects((prev) => {
-        const next = [...prev];
-        next[index] = true;
-        return next;
-      });
-      setTimeout(() => {
         setHitEffects((prev) => {
           const next = [...prev];
-          next[index] = false;
+          next[index] = true;
           return next;
         });
-      }, 300);
+        setTimeout(() => {
+          setHitEffects((prev) => {
+            const next = [...prev];
+            next[index] = false;
+            return next;
+          });
+        }, 300);
 
-      // 修正的計分邏輯
-      let scoreToAdd = 0;
-      let feedbackType = null;
+        let scoreToAdd = 0;
+        let feedbackType = null;
+        const currentArrows = arrows;
+        let hitArrow = null;
 
-      // 查找可以擊中的箭頭
-      const currentArrows = arrows;
-      let hitArrow = null;
-
-      for (let i = 0; i < currentArrows.length; i++) {
-        const arrow = currentArrows[i];
-        if (
-          arrow.direction === directions[index] &&
-          arrow.status === "falling"
-        ) {
-          let arrowHeight =
-            arrow.direction === "up" || arrow.direction === "down" ? 100 : 50;
-          const arrowCenterY = arrow.y + arrowHeight / 2;
-          const dy = Math.abs(arrowCenterY - zoneY);
-
-          // 使用動態判定距離
-          if (dy <= judgmentDistance) {
-            if (dy <= perfectDistance) {
-              scoreToAdd = 5;
-              feedbackType = "perfect";
-              hitArrow = arrow;
-            } else {
-              scoreToAdd = 3;
-              feedbackType = "good";
-              hitArrow = arrow;
-            }
-            break;
-          }
-          // 箭頭已經過了判定區域（太晚按）
-          else if (
-            arrowCenterY > zoneY + judgmentDistance &&
-            !arrow.hasPassedZone
+        for (let i = 0; i < currentArrows.length; i++) {
+          const arrow = currentArrows[i];
+          if (
+            arrow.direction === directions[index] &&
+            arrow.status === "falling"
           ) {
-            feedbackType = "miss";
-            // 標記這個箭頭為已處理，避免重複miss
-            setArrows((prev) =>
-              prev.map((a) =>
-                a.id === arrow.id
-                  ? { ...a, status: "missed", hasPassedZone: true }
-                  : a
-              )
-            );
-            break;
+            let arrowHeight =
+              arrow.direction === "up" || arrow.direction === "down" ? 100 : 50;
+            const arrowCenterY = arrow.y + arrowHeight / 2;
+            const dy = Math.abs(arrowCenterY - zoneY);
+
+            if (dy <= judgmentDistance) {
+              if (dy <= perfectDistance) {
+                scoreToAdd = 5;
+                feedbackType = "perfect";
+                hitArrow = arrow;
+              } else {
+                scoreToAdd = 3;
+                feedbackType = "good";
+                hitArrow = arrow;
+              }
+              break;
+            } else if (
+              arrowCenterY > zoneY + judgmentDistance &&
+              !arrow.hasPassedZone
+            ) {
+              feedbackType = "miss";
+              setArrows((prev) =>
+                prev.map((a) =>
+                  a.id === arrow.id
+                    ? { ...a, status: "missed", hasPassedZone: true }
+                    : a
+                )
+              );
+              break;
+            }
           }
         }
-      }
 
-      // 更新箭頭狀態
-      if (hitArrow) {
-        setArrows((prev) =>
-          prev.map((arrow) =>
-            arrow.id === hitArrow.id
-              ? { ...arrow, feedback: feedbackType, status: "hit" }
-              : arrow
-          )
-        );
-      }
+        if (hitArrow) {
+          setArrows((prev) =>
+            prev.map((arrow) =>
+              arrow.id === hitArrow.id
+                ? { ...arrow, feedback: feedbackType, status: "hit" }
+                : arrow
+            )
+          );
+        }
 
-      // 更新分數
-      if (scoreToAdd > 0) {
-        setScore((s) => s + scoreToAdd);
-      }
+        if (scoreToAdd > 0) {
+          setScore((s) => s + scoreToAdd);
+        }
 
-      // 顯示反饋（只有在有反饋時才顯示）
-      if (feedbackType) {
-        setCenterFeedback(feedbackType);
-        setTimeout(() => {
-          setCenterFeedback(null);
-        }, 500);
+        if (feedbackType) {
+          setCenterFeedback(feedbackType);
+          setTimeout(() => {
+            setCenterFeedback(null);
+          }, 500);
+        }
       }
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showIntro, gameActive, arrows]);
+  }, [showIntro, gameActive, gameOver, arrows]);
 
-  // 當 showIntro 變為 false 時開始遊戲
   useEffect(() => {
     if (!showIntro && !gameActive && !gameFinishedRef.current) {
-      console.log("Intro finished, starting game");
       startGame();
     }
   }, [showIntro, gameActive, startGame]);
 
-  // 組件卸載時清理
   useEffect(() => {
     return () => {
       clearAllIntervals();
@@ -288,22 +296,46 @@ export default function Game9() {
   }, [clearAllIntervals]);
 
   useEffect(() => {
-    if (
-      arrowIdRef.current >= 25 &&
-      arrows.length === 25 &&
-      arrows.every((a) => a.status !== "falling") &&
-      !gameFinishedRef.current
-    ) {
-      console.log("All arrows resolved. Finishing in 1 second...");
-      setTimeout(() => {
-        handleFinish();
-      }, 1000);
+    if (showIntro && introAudioRef.current) {
+      introAudioRef.current.currentTime = 0;
+      introAudioRef.current.play();
+    } else if (!showIntro && introAudioRef.current) {
+      introAudioRef.current.pause();
     }
-  }, [arrows, handleFinish]);
+  }, [showIntro]);
 
   return (
     <div className="bg-[url(/game9/background.png)] h-screen overflow-hidden flex items-center justify-center">
-      {showIntro ? (
+      <audio ref={introAudioRef} src="/game9/intro.mp3" loop />
+      <audio ref={audioRef} src="/game9/game9.mp3" />
+
+      {gameOver ? (
+        <div className="flex flex-col items-center gap-20">
+          <Image
+            src={`/game9/${score >= 100 ? "win" : "lose"}.png`}
+            alt="game result"
+            width={700}
+            height={300}
+            priority
+          />
+          <div className="flex gap-30">
+            <div className="flex justify-center items-center px-5 text-3xl rounded-4xl border-6 border-[#D7CD77] text-white w-[250px] h-[100px] ">
+              按下
+              <div className="text-black rounded-md bg-white w-[30px] mx-2 flex justify-center items-center">
+                C
+              </div>
+              鍵重來
+            </div>
+            <div className="flex justify-center items-center px-5 text-3xl rounded-4xl border-6 border-[#D7CD77] text-white w-[250px] h-[100px] ">
+              按下
+              <div className="text-black rounded-md bg-white w-[30px] mx-2 flex justify-center items-center">
+                D
+              </div>
+              鍵結束
+            </div>
+          </div>
+        </div>
+      ) : showIntro ? (
         <div className="flex flex-col items-center gap-20">
           <Image
             src="/game9/description.png"
@@ -312,7 +344,7 @@ export default function Game9() {
             height={508}
             priority
           />
-          <div className=" flex justify-center items-center px-5 text-3xl rounded-4xl border-6 border-[#D7CD77] text-white w-[310px] h-[100px] animate-bounce">
+          <div className="flex justify-center items-center px-5 text-3xl rounded-4xl border-6 border-[#D7CD77] text-white w-[310px] h-[100px] animate-bounce">
             按下
             <div className="text-black rounded-md bg-white w-[90px] mx-2 flex justify-center items-center">
               Space
@@ -324,12 +356,13 @@ export default function Game9() {
         <div className="flex items-center gap-5 h-full">
           <p className="absolute top-10 left-20 text-4xl font-medium text-white">
             {score}
-            <span className="text-sm block">
-              Arrows: {arrowIdRef.current}/25
-            </span>
           </p>
           <Image
-            src="/game9/dinasour-l.png"
+            src={
+              isDinoFacingRight
+                ? "/game9/dinasour-r.png"
+                : "/game9/dinasour-l.png"
+            }
             alt="dinasour left"
             width={185}
             height={230}
@@ -340,8 +373,8 @@ export default function Game9() {
               <Image
                 src={`/game9/${centerFeedback}.png`}
                 alt={centerFeedback}
-                width={200}
-                height={200}
+                width={centerFeedback === "perfect" ? 250 : 200}
+                height={centerFeedback === "Perfect" ? 250 : 200}
               />
             </div>
           )}
@@ -374,7 +407,6 @@ export default function Game9() {
                   const wrapperClass = isVertical
                     ? "w-[70px] h-[100px]"
                     : "w-[80px] h-[50px]";
-
                   return (
                     <div
                       key={a.id}
@@ -403,7 +435,11 @@ export default function Game9() {
             </div>
           ))}
           <Image
-            src="/game9/dinasour-r.png"
+            src={
+              isDinoFacingRight
+                ? "/game9/dinasour-l.png"
+                : "/game9/dinasour-r.png"
+            }
             alt="dinasour right"
             width={185}
             height={230}
