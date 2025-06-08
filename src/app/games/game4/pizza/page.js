@@ -151,7 +151,7 @@ export default function PizzaGame() {
     }, 500);
   };
 
-  // 回首頁
+  // 回首頁（成功才累加 status）
   const handleFinish = () => {
     const delta = 1;
     const newStatus = status + delta;
@@ -233,12 +233,15 @@ export default function PizzaGame() {
               <button id="restartBtn" onClick={() => window.location.reload()}>
                 再吃一回
               </button>
-              <button id="homeBtn" onClick={handleFinish} title="回首頁">
+              <button
+                id="homeBtn"
+                onClick={score >= 70 ? handleFinish : () => router.push("/")}
+                title="回首頁"
+              >
                 {/* House icon SVG */}
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="#333">
                   <path d="M3 10.75L12 4l9 6.75V20a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-4h-4v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V10.75z"/>
                 </svg>
-
               </button>
             </div>
           )}
@@ -247,4 +250,5 @@ export default function PizzaGame() {
     </div>
   );
 }
+
 
