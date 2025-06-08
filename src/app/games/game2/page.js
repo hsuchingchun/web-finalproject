@@ -27,6 +27,8 @@ export default function Game2() {
   const [status, setStatus] = useState(0);
   const lastFallTimeRef = useRef(Date.now());
   const popSound = useRef(null);
+  const bgmAudio = useRef(null);
+  const [bgmMuted, setBgmMuted] = useState(false);
 
   useEffect(() => {
     scoreRef.current = score;
@@ -36,7 +38,21 @@ export default function Game2() {
     const stored = localStorage.getItem("status");
     if (stored) setStatus(parseInt(stored));
     popSound.current = new Audio("/game2/pop.mp3");
+    bgmAudio.current = new Audio("/game2/fun-bgm.mp3");
+    bgmAudio.current.loop = true;
+    bgmAudio.current.volume = 0.3;
   }, []);
+
+  useEffect(() => {
+    if (bgmAudio.current) {
+      bgmAudio.current.muted = bgmMuted;
+      if (!showIntro && !paused && !gameResult) {
+        bgmAudio.current.play().catch((err) => console.warn("BGM play error:", err));
+      } else {
+        bgmAudio.current.pause();
+      }
+    }
+  }, [showIntro, paused, gameResult, bgmMuted]);
 
   const playPop = () => {
     if (popSound.current) {
@@ -46,13 +62,81 @@ export default function Game2() {
   };
 
   const handleFinish = () => {
-  const delta = 1;
-  const newStatus = status + delta;
-  localStorage.setItem("status", newStatus);
-  setTimeout(() => {
-    router.push("/");
-  }, 2000); // 延遲 2 秒跳轉，讓使用者看到得分畫面
-};
+    const delta = 1;
+    const newStatus = status + delta;
+    localStorage.setItem("status", newStatus);
+    if (bgmAudio.current) {
+      bgmAudio.current.pause();
+      bgmAudio.current.currentTime = 0;
+    }
+    setTimeout(() => {
+      router.push("/");
+    }, 2000);
+  };
+
+  const handleShoot = (e) => {
+    if (paused || shooting || showIntro || gameResult) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const centerX = cupX;
+    const centerY = canvasSize.height - 90;
+    const dirX = mouseX - centerX;
+    const dirY = mouseY - centerY;
+    if (dirY > -10) return;
+    const length = Math.hypot(dirX, dirY);
+    const dx = (dirX / length) * 10;
+    const dy = (dirY / length) * 10;
+    setShooting({ x: centerX, y: centerY, dx, dy, color: nextColor });
+  };
+
+  const drawBubble = useCallback((ctx, x, y, color) => {
+    ctx.imageSmoothingEnabled = false;
+    ctx.beginPath();
+    ctx.arc(x, y, 16, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = "#00000055";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x - 8, y - 8, 6, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffffff88";
+    ctx.fill();
+  }, []);
+
+  const renderScene = useCallback((ctx) => {
+    if (bgImage.current?.complete) {
+      ctx.drawImage(bgImage.current, 0, 0, canvasSize.width, canvasSize.height);
+    } else {
+      ctx.fillStyle = "#90caf9";
+      ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
+    }
+    for (const b of bubbles) {
+      drawBubble(ctx, b.x, b.y, b.color);
+    }
+    if (shooting) {
+      for (let i = 0; i < 10; i++) {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(
+          shooting.x - shooting.dx * i * 5,
+          shooting.y - shooting.dy * i * 5,
+          2, 2
+        );
+      }
+      drawBubble(ctx, shooting.x, shooting.y, shooting.color);
+    }
+    const cupY = canvasSize.height - 96;
+    if (shooterImg.current?.complete) {
+      ctx.drawImage(shooterImg.current, cupX - CUP_WIDTH / 2, cupY, CUP_WIDTH, 96);
+    }
+    if (nextColor) {
+      drawBubble(ctx, cupX + 7, cupY - 16, nextColor);
+    }
+    ctx.fillStyle = "#1a237e";
+    ctx.fillRect(0, 0, 16, canvasSize.height);
+    ctx.fillRect(canvasSize.width - 16, 0, 16, canvasSize.height);
+  }, [bubbles, shooting, nextColor, canvasSize, drawBubble, cupX]);
 
   useEffect(() => {
     const resize = () => {
@@ -110,60 +194,6 @@ export default function Game2() {
     setBubbles(initial);
     setNextColor(COLORS[Math.floor(Math.random() * COLORS.length)]);
   }, [canvasSize]);
-
-  const drawBubble = useCallback((ctx, x, y, color) => {
-    ctx.imageSmoothingEnabled = false;
-    ctx.beginPath();
-    ctx.arc(x, y, 16, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
-    ctx.strokeStyle = "#00000055";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(x - 8, y - 8, 6, 0, Math.PI * 2);
-    ctx.fillStyle = "#ffffff88";
-    ctx.fill();
-  }, []);
-
-  const renderScene = useCallback((ctx) => {
-    if (bgImage.current?.complete) {
-      ctx.drawImage(bgImage.current, 0, 0, canvasSize.width, canvasSize.height);
-    } else {
-      ctx.fillStyle = "#90caf9";
-      ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
-    }
-
-    for (const b of bubbles) {
-      drawBubble(ctx, b.x, b.y, b.color);
-    }
-
-    if (shooting) {
-      for (let i = 0; i < 10; i++) {
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(
-          shooting.x - shooting.dx * i * 5,
-          shooting.y - shooting.dy * i * 5,
-          2, 2
-        );
-      }
-      drawBubble(ctx, shooting.x, shooting.y, shooting.color);
-    }
-
-    const cupY = canvasSize.height - 96;
-
-    if (shooterImg.current?.complete) {
-      ctx.drawImage(shooterImg.current, cupX - CUP_WIDTH / 2, cupY, CUP_WIDTH, 96);
-    }
-
-    if (nextColor) {
-      drawBubble(ctx, cupX + 7, cupY - 16, nextColor);
-    }
-
-    ctx.fillStyle = "#1a237e";
-    ctx.fillRect(0, 0, 16, canvasSize.height);
-    ctx.fillRect(canvasSize.width - 16, 0, 16, canvasSize.height);
-  }, [bubbles, shooting, nextColor, canvasSize, drawBubble, cupX]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -237,7 +267,7 @@ export default function Game2() {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           setFinalScore(scoreRef.current);
-  setTimeout(() => setGameResult("Time's Up"), 100);
+          setTimeout(() => setGameResult("Time's Up"), 100);
           return 0;
         }
         return prev - 1;
@@ -264,34 +294,6 @@ export default function Game2() {
     return match.length >= 3 ? all.filter(b => !match.includes(b)) : all;
   };
 
-  const handleShoot = (e) => {
-    if (paused || shooting || showIntro || gameResult) return;
-    const rect = canvasRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    const centerX = cupX;
-    const centerY = canvasSize.height - 90;
-    const dirX = mouseX - centerX;
-    const dirY = mouseY - centerY;
-    if (dirY > -10) return;
-    const length = Math.hypot(dirX, dirY);
-    const dx = (dirX / length) * 10;
-    const dy = (dirY / length) * 10;
-    setShooting({ x: centerX, y: centerY, dx, dy, color: nextColor });
-  };
-
-  const handleRestart = () => {
-    setStepCount(0);
-    setTimeLeft(60);
-    setPaused(false);
-    setGameResult("");
-    setFinalScore(0);
-    setScore(0);
-    setShooting(null);
-    setShowIntro(true);
-    setCanvasSize({ width: window.innerWidth, height: window.innerHeight });
-  };
-
   return (
     <div className="w-screen h-screen overflow-hidden relative bg-blue-200">
       <canvas
@@ -311,6 +313,7 @@ export default function Game2() {
           if (ctx) renderScene(ctx);
         }}
       />
+
       {!showIntro && (
         <div className="absolute top-4 left-4 px-4 py-2 bg-white/80 text-black rounded-xl shadow-md text-base font-bold">
           Score: {score} ｜ Time: {timeLeft}s
@@ -324,6 +327,15 @@ export default function Game2() {
           {paused ? "繼續" : "暫停"}
         </button>
       )}
+      {!showIntro && (
+        <button
+          className="absolute bottom-4 left-4 px-5 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-xl shadow-md text-base font-semibold"
+          onClick={() => setBgmMuted((prev) => !prev)}
+        >
+          {bgmMuted ? "🔇" : "🔊"}
+        </button>
+      )}
+
       {showIntro && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-white/90 to-sky-100/80 text-black p-10 rounded-xl shadow-2xl border border-white">
           <h1 className="text-4xl font-bold mb-6 text-indigo-800 drop-shadow-sm">🎯 遊戲說明</h1>
@@ -346,11 +358,13 @@ export default function Game2() {
           </button>
         </div>
       )}
+
       {comboText && (
         <div className="absolute inset-0 flex items-center justify-center text-5xl text-red-500 font-extrabold animate-bounce drop-shadow-lg">
           {comboText}
         </div>
       )}
+
       {gameResult && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 text-white text-4xl font-bold">
           {gameResult}
