@@ -17,15 +17,11 @@ export default function IceCreamCatchGame() {
     { type: "high", score: 3, image: "/game12/icecream4.png" },
     { type: "normal", score: 1, image: "/game12/icecream3.png" },
   ];
-  // 音效 refs
-  const bgAudioRef = useRef(null);
-  const eatIceCreamAudioRef = useRef(null);
-  const bitterMelonAudioRef = useRef(null);
-  const prevPlayRef = useRef(false);
 
-  // Intro 狀態
+  // 狀態與 ref
   const [showIntro, setShowIntro] = useState(true);
-
+  const [showInfo, setShowInfo] = useState(false); // info 規則彈窗
+  const [isPaused, setIsPaused] = useState(false);
   const [windowSize, setWindowSize] = useState({
     width: typeof window !== "undefined" ? window.innerWidth : 400,
     height: typeof window !== "undefined" ? window.innerHeight : 600,
@@ -40,19 +36,13 @@ export default function IceCreamCatchGame() {
   const [isAngry, setIsAngry] = useState(false);
   const keysPressed = useRef({});
 
-  const router = useRouter();
+  // 音效 refs
+  const bgAudioRef = useRef(null);
+  const eatIceCreamAudioRef = useRef(null);
+  const bitterMelonAudioRef = useRef(null);
+  const prevPlayRef = useRef(false);
 
-  // 按 SPACE 開始
-  useEffect(() => {
-    if (!showIntro) return;
-    function handleKeyDown(e) {
-      if (e.code === "Space" || e.key === " ") {
-        setShowIntro(false);
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showIntro]);
+  const router = useRouter();
 
   function getRandomIceCreamX() {
     const slotSize = 32;
@@ -130,7 +120,7 @@ export default function IceCreamCatchGame() {
 
   // 定時產生新冰淇淋
   useEffect(() => {
-    if (gameOver || gameFinish || showIntro) return;
+    if (gameOver || gameFinish || showIntro || showInfo || isPaused) return;
     const spawner = setInterval(() => {
       const typeIdx = Math.floor(Math.random() * iceCreamTypes.length);
       const type = iceCreamTypes[typeIdx];
@@ -145,11 +135,19 @@ export default function IceCreamCatchGame() {
       ]);
     }, 1100);
     return () => clearInterval(spawner);
-  }, [gameOver, gameFinish, windowSize.width, windowSize.height, showIntro]);
+  }, [
+    gameOver,
+    gameFinish,
+    windowSize.width,
+    windowSize.height,
+    showIntro,
+    showInfo,
+    isPaused,
+  ]);
 
   // 主遊戲 mover
   useEffect(() => {
-    if (gameOver || gameFinish || showIntro) return;
+    if (gameOver || gameFinish || showIntro || showInfo || isPaused) return;
     const mover = setInterval(() => {
       setPlayerX((x) => {
         let nx = x;
@@ -157,7 +155,7 @@ export default function IceCreamCatchGame() {
           nx = Math.max(0, x - 20);
         }
         if (keysPressed.current["ArrowRight"]) {
-          nx = Math.min(windowSize.width - playerWidth, x + 15);
+          nx = Math.min(windowSize.width - playerWidth, x + 20);
         }
         return nx;
       });
@@ -245,6 +243,8 @@ export default function IceCreamCatchGame() {
     score,
     missCount,
     showIntro,
+    showInfo,
+    isPaused,
   ]);
 
   // 回主頁，只有破關才+1
@@ -415,47 +415,64 @@ export default function IceCreamCatchGame() {
           >
             {content}
           </div>
-          <button
-            onClick={restartGame}
+          <div
             style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 16,
               width: "100%",
               maxWidth: 400,
-              padding: "14px 20px",
-              fontSize: 22,
-              fontFamily: "Aura",
-              border: "4px solid #fffab0",
-              borderRadius: 12,
-              boxShadow: "0 0 16px 3px #ffe77788",
-              background: "transparent",
-              color: "white",
-              cursor: "pointer",
-              marginBottom: 18,
-
-              letterSpacing: "1.2px",
             }}
           >
-            重新開始遊戲
-          </button>
-          <button
-            onClick={handleFinish}
-            style={{
-              width: "100%",
-              maxWidth: 400,
-              padding: "14px 20px",
-              fontSize: 22,
-              fontFamily: "Aura",
-              border: "4px solid #fffab0",
-              borderRadius: 12,
-              boxShadow: "0 0 16px 3px #ffe77788",
-              background: "transparent",
-              color: "white",
-              cursor: "pointer",
-
-              letterSpacing: "1.2px",
-            }}
-          >
-            回到主頁
-          </button>
+            <button
+              onClick={restartGame}
+              style={{
+                cursor: "pointer",
+                display: "block",
+                width: "100%",
+                textAlign: "center",
+                padding: "12px 24px",
+                borderRadius: 12,
+                border: "3px solid #E6EBDC",
+                boxShadow: "0 0 12px 3px #618A97",
+                background: "rgba(0,0,0,0)",
+                color: "#fff",
+                fontFamily: "Aura",
+                fontSize: 24,
+                letterSpacing: "1.2px",
+                fontWeight: "bold",
+                marginBottom: 8,
+                cursor: "pointer",
+                userSelect: "none",
+              }}
+            >
+              重新遊玩
+            </button>
+            <button
+              onClick={handleFinish}
+              style={{
+                cursor: "pointer",
+                display: "block",
+                width: "100%",
+                textAlign: "center",
+                padding: "12px 24px",
+                borderRadius: 12,
+                border: "3px solid #E6EBDC",
+                boxShadow: "0 0 12px 3px #618A97",
+                background: "rgba(0,0,0,0)",
+                color: "#fff",
+                fontFamily: "Aura",
+                fontSize: 24,
+                letterSpacing: "1.2px",
+                fontWeight: "bold",
+                cursor: "pointer",
+                userSelect: "none",
+              }}
+            >
+              回到首頁
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -644,41 +661,369 @@ export default function IceCreamCatchGame() {
             style={{
               display: "flex",
               justifyContent: "center",
+              alignItems: "center",
+              width: 400,
             }}
           >
-            <span
+            <button
+              onClick={() => setShowIntro(false)}
               style={{
+                cursor: "pointer",
+                display: "block", // 讓 span 佔滿外層寬度
+                width: "100%",
+                textAlign: "center",
                 padding: "10px 30px",
                 borderRadius: 14,
-                border: "3px solid #fffab0",
-                boxShadow: "0 0 12px 3px #ffe77788",
+                border: "3px solid #E6EBDC",
+                boxShadow: "0 0 12px 3px #618A97",
                 background: "rgba(0,0,0,0)",
                 color: "#fff",
                 fontFamily: "Aura",
-                fontSize: 28,
+                fontSize: 24,
                 letterSpacing: "1.2px",
                 fontWeight: "bold",
               }}
             >
-              按{" "}
-              <span
-                style={{
-                  display: "inline-block",
-                  background: "#fff",
-                  color: "#222",
-                  borderRadius: 8,
-                  padding: "0 10px",
-                  margin: "0 5px",
-                  fontSize: 32,
-
-                  boxShadow: "0 0 4px #fff",
-                }}
-              >
-                SPACE
-              </span>{" "}
               開始遊戲
-            </span>
+            </button>
           </div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              marginTop: 14,
+              width: 400,
+            }}
+          >
+            <button
+              onClick={() => router.push("/")}
+              style={{
+                cursor: "pointer",
+                display: "block", // 讓 span 佔滿外層寬度
+                width: "100%",
+                textAlign: "center",
+                padding: "8px 24px",
+                borderRadius: 12,
+                border: "3px solid #E6EBDC",
+                boxShadow: "0 0 12px 3px #618A97",
+                background: "rgba(0,0,0,0)",
+                color: "#fff",
+                fontFamily: "Aura",
+                fontSize: 24,
+                letterSpacing: "1.2px",
+                fontWeight: "bold",
+                display: "inline-block",
+              }}
+            >
+              返回首頁
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // info modal
+  function renderInfoModal() {
+    if (!showInfo) return null;
+    const aqua = "#6fbcc5";
+    const circleStyle = {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: 28,
+      height: 28,
+      borderRadius: "50%",
+      background: aqua,
+      color: "#fff",
+      fontWeight: "bold",
+      fontSize: 20,
+      marginRight: 10,
+      verticalAlign: "middle",
+      flexShrink: 0,
+      fontFamily: "Aura",
+    };
+
+    // 圖片icon樣式
+    const iconStyle = {
+      width: 30,
+      height: 30,
+      margin: "0 5px -5px 0",
+      objectFit: "contain",
+      display: "inline-block",
+      verticalAlign: "middle",
+      userSelect: "none",
+    };
+    return (
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.48)",
+          zIndex: 10000,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 24,
+          }}
+        >
+          <div
+            style={{
+              fontFamily: "Aura",
+              background: "#F4F4EB",
+              borderRadius: 24,
+              boxShadow: "0 0 40px #0005",
+              padding: "48px 40px 48px 40px",
+              minWidth: 480,
+              maxWidth: 580,
+              textAlign: "left",
+              fontSize: 22,
+              lineHeight: 1.5,
+              color: "#222",
+              position: "relative",
+            }}
+          >
+            <div
+              style={{
+                fontWeight: "bold",
+                fontSize: 28,
+                textAlign: "center",
+                marginBottom: 14,
+              }}
+            >
+              遊戲規則說明
+            </div>
+
+            <div
+              style={{
+                marginBottom: 18,
+                display: "flex",
+                alignItems: "flex-start",
+              }}
+            >
+              <span style={circleStyle}>1</span>
+              <span>
+                讓玩家吃足夠冰淇淋，吃到分數40分就心滿意足遊戲結束，過程中會有
+                <img
+                  src="/game12/bittermelon.png"
+                  alt="苦瓜"
+                  style={{ ...iconStyle, margin: "0 0px 0px 4px" }}
+                />
+                苦瓜，小心不要讓他吃到了！
+              </span>
+            </div>
+
+            <div
+              style={{
+                marginBottom: 18,
+                display: "flex",
+                alignItems: "flex-start",
+              }}
+            >
+              <span style={circleStyle}>2</span>
+              <span>
+                只要玩家沒吃到冰淇淋，或是吃到苦瓜，都會累積不滿意分數
+                <img
+                  src="/game12/player_angry.png"
+                  alt="不滿意"
+                  style={{ ...iconStyle, margin: "0 0px 0px 4px" }}
+                />
+                ，累計五次不滿意分數或分數負分則遊戲結束。
+              </span>
+            </div>
+
+            <div
+              style={{
+                marginBottom: 0,
+                display: "flex",
+                alignItems: "flex-start",
+              }}
+            >
+              <span style={circleStyle}>3</span>
+              <span>
+                人物操作方式：方向鍵
+                <img
+                  src="/game12/left.png"
+                  alt="左鍵"
+                  style={{
+                    width: 36,
+                    height: 36,
+                    margin: "0 6px 0px 12px",
+                    verticalAlign: "middle",
+                    userSelect: "none",
+                    display: "inline-block",
+                  }}
+                  draggable={false}
+                />
+                <img
+                  src="/game12/right.png"
+                  alt="右鍵"
+                  style={{
+                    width: 36,
+                    height: 36,
+                    margin: "0 0px 0px 2px",
+                    verticalAlign: "middle",
+                    userSelect: "none",
+                    display: "inline-block",
+                  }}
+                  draggable={false}
+                />
+                <br />
+                <span style={{ display: "inline-flex", alignItems: "center" }}>
+                  <img
+                    src="/game12/icecream2.png"
+                    alt="冰淇淋"
+                    style={iconStyle}
+                  />
+                  冰淇淋：+3　
+                  <img
+                    src="/game12/icecream1.png"
+                    alt="冰棒"
+                    style={iconStyle}
+                  />
+                  冰棒：+1　
+                  <img
+                    src="/game12/bittermelon.png"
+                    alt="苦瓜"
+                    style={iconStyle}
+                  />
+                  苦瓜：-4
+                </span>
+              </span>
+            </div>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              width: 400,
+            }}
+          >
+            <button
+              style={{
+                cursor: "pointer",
+                display: "block", // 讓 span 佔滿外層寬度
+                width: "100%",
+                textAlign: "center",
+                padding: "10px 30px",
+                borderRadius: 14,
+                border: "3px solid #E6EBDC",
+                boxShadow: "0 0 12px 3px #618A97",
+                background: "rgba(0,0,0,0)",
+                color: "#fff",
+                fontFamily: "Aura",
+                fontSize: 24,
+                letterSpacing: "1.2px",
+                fontWeight: "bold",
+              }}
+              onClick={() => setShowInfo(false)}
+            >
+              繼續遊戲
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderPauseOverlay() {
+    if (!isPaused) return null;
+
+    return (
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.48)",
+          zIndex: 11000,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          pointerEvents: "auto",
+          flexDirection: "column",
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "Aura",
+            color: "#fff",
+            fontSize: 38,
+            fontWeight: "bold",
+            letterSpacing: 2,
+            textShadow: "0 2px 16px #0009",
+            marginBottom: 32,
+            textAlign: "center",
+          }}
+        >
+          遊戲已暫停
+        </div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 18,
+            justifyContent: "center",
+            marginTop: 14,
+            width: 400,
+          }}
+        >
+          {/* P: 繼續遊戲 */}
+          <button
+            style={{
+              cursor: "pointer",
+              display: "block",
+              width: "100%",
+              textAlign: "center",
+              padding: "10px 24px",
+              borderRadius: 12,
+              border: "3px solid #E6EBDC",
+              boxShadow: "0 0 12px 3px #618A97",
+              background: "rgba(0,0,0,0)",
+              color: "#fff",
+              fontFamily: "Aura",
+              fontSize: 24,
+              letterSpacing: "1.2px",
+              fontWeight: "bold",
+              cursor: "pointer",
+              marginBottom: 4,
+              userSelect: "none",
+            }}
+            onClick={() => setIsPaused(false)}
+          >
+            繼續遊戲
+          </button>
+          {/* C: 回到首頁 */}
+          <button
+            style={{
+              cursor: "pointer",
+              display: "block",
+              width: "100%",
+              textAlign: "center",
+              padding: "10px 24px",
+              borderRadius: 12,
+              border: "3px solid #E6EBDC",
+              boxShadow: "0 0 12px 3px #618A97",
+              background: "rgba(0,0,0,0)",
+              color: "#fff",
+              fontFamily: "Aura",
+              fontSize: 24,
+              letterSpacing: "1.2px",
+              fontWeight: "bold",
+              cursor: "pointer",
+              userSelect: "none",
+            }}
+            onClick={handleFinish}
+          >
+            回到首頁
+          </button>
         </div>
       </div>
     );
@@ -687,6 +1032,20 @@ export default function IceCreamCatchGame() {
   return (
     <>
       {/* 全螢幕背景 */}
+      <input
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: 1,
+          height: 1,
+          opacity: 0,
+          zIndex: 20000,
+          pointerEvents: "none",
+        }}
+        aria-hidden="true"
+        tabIndex={-1}
+      />
       <img
         src="/game12/bg.png"
         alt="背景"
@@ -710,14 +1069,84 @@ export default function IceCreamCatchGame() {
       {/* 右上角 missCount */}
       {renderMissUI()}
 
-      {/* 說明畫面 */}
+      {/* Intro 遊戲說明（初次或呼叫） */}
       {renderIntro()}
+      {renderInfoModal()}
 
-      {/* overlay dialog */}
+      {/* 遊戲結算/失敗彈窗 */}
       {renderOverlayDialog()}
 
-      {/* 遊戲主體 */}
-      {!showIntro && (
+      {/* 暫停遮罩 */}
+      {renderPauseOverlay()}
+
+      {/* 右下角 info & 暫停按鈕 */}
+      {!showIntro && !gameOver && !gameFinish && !isPaused && !showInfo && (
+        <div
+          style={{
+            position: "fixed",
+            right: 26,
+            bottom: 38,
+            zIndex: 500,
+            display: "flex",
+            flexDirection: "column",
+            gap: 18,
+          }}
+        >
+          <button
+            onClick={() => setShowInfo(true)}
+            aria-label="遊戲說明"
+            style={{
+              cursor: "pointer",
+              width: 62,
+              height: 62,
+              border: "none",
+              background: "rgba(255,255,255,0.67)",
+              borderRadius: "50%",
+              boxShadow: "0 2px 18px #8886",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 0,
+            }}
+          >
+            <img
+              src="/game12/info.png"
+              alt="說明"
+              style={{ width: 36, height: 36 }}
+              draggable={false}
+            />
+          </button>
+          <button
+            onClick={() => setIsPaused(true)}
+            aria-label={isPaused ? "繼續遊戲" : "暫停遊戲"}
+            style={{
+              cursor: "pointer",
+              width: 62,
+              height: 62,
+              border: "none",
+              background: "rgba(255,255,255,0.67)",
+              borderRadius: "50%",
+              boxShadow: "0 2px 18px #8886",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 0,
+            }}
+          >
+            <img
+              src="/game12/pause.png"
+              alt="暫停"
+              style={{ width: 36, height: 36, opacity: isPaused ? 0.45 : 1 }}
+              draggable={false}
+            />
+          </button>
+        </div>
+      )}
+
+      {/* 遊戲主畫面（不顯示於intro/gameover/結束/暫停） */}
+      {!showIntro && !gameOver && !gameFinish && !isPaused && (
         <div
           tabIndex={0}
           style={{
@@ -732,54 +1161,51 @@ export default function IceCreamCatchGame() {
             overflow: "hidden",
           }}
         >
-          {!gameOver && !gameFinish && (
-            <>
-              {/* 玩家圖片 */}
-              <img
-                src={
-                  isAngry
-                    ? "/game12/player_disgusting.png"
-                    : isEating
-                    ? "/game12/player_eat.png"
-                    : "/game12/player.png"
-                }
-                alt="玩家"
-                style={{
-                  position: "absolute",
-                  bottom: 0,
-                  left: playerX,
-                  width: playerWidth,
-                  height: playerHeight,
-                  zIndex: 2,
-                  userSelect: "none",
-                  pointerEvents: "none",
-                }}
-                draggable={false}
-              />
+          {/* 玩家 */}
+          <img
+            src={
+              isAngry
+                ? "/game12/player_disgusting.png"
+                : isEating
+                ? "/game12/player_eat.png"
+                : "/game12/player.png"
+            }
+            alt="主角"
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: playerX,
+              width: playerWidth,
+              height: playerHeight,
+              zIndex: 2,
+              userSelect: "none",
+              pointerEvents: "none",
+            }}
+            draggable={false}
+          />
 
-              {/* 多顆冰淇淋 */}
-              {iceCreams.map((ice) => (
-                <img
-                  key={ice.id}
-                  src={ice.type.image}
-                  alt="冰淇淋"
-                  style={{
-                    position: "absolute",
-                    top: ice.y,
-                    left: ice.x,
-                    width: iceCreamSize,
-                    height: iceCreamSize,
-                    zIndex: 2,
-                    userSelect: "none",
-                    pointerEvents: "none",
-                  }}
-                  draggable={false}
-                />
-              ))}
-            </>
-          )}
+          {/* 多顆冰淇淋 */}
+          {iceCreams.map((ice) => (
+            <img
+              key={ice.id}
+              src={ice.type.image}
+              alt="冰淇淋"
+              style={{
+                position: "absolute",
+                top: ice.y,
+                left: ice.x,
+                width: iceCreamSize,
+                height: iceCreamSize,
+                zIndex: 2,
+                userSelect: "none",
+                pointerEvents: "none",
+              }}
+              draggable={false}
+            />
+          ))}
         </div>
       )}
+
       {/* ----- 音樂/音效播放器 ----- */}
       <audio
         ref={bgAudioRef}
