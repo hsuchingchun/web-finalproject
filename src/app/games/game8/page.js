@@ -33,6 +33,7 @@ export default function Game() {
   const comboMessageTimeout = useRef(null);
   const [hasMovedOnce, setHasMovedOnce] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
   const [smokeEffects, setSmokeEffects] = useState([]);
   const [status, setStatus] = useState(0);
   
@@ -51,6 +52,71 @@ export default function Game() {
       bgmRef.current.play();
     }
   };
+
+  // 預載圖片列表
+  const preloadImages = [
+    "/game8images/background.png",
+    "/game8images/start.png",
+    "/game8images/startPress.png",
+    "/game8images/backPress.png",
+    "/game8images/againPress.png",
+    "/game8images/homePress.png",
+    "/game8images/boss1.png",
+    "/game8images/boss2.png",
+    "/game8images/player.png",
+    "/game8images/come.png",
+    "/game8images/message.png",
+    "/game8images/miss.png",
+    "/game8images/good.png",
+    "/game8images/oops.png",
+    "/game8images/win.png",
+    "/game8images/loss.png",
+    "/game8images/score.png",
+    "/game8images/target.png",
+    "/game8images/smoke.png",
+    "/game8images/soundon.png",
+    "/game8images/soundmuted.png",
+    "/game8images/back.png",
+    ...FOOD_TYPES.map(food => food.img),
+    ...Array.from({length: 13}, (_, i) => `/game8images/number/${i-6}.png`), // 載入-6到6的數字圖片
+  ];
+
+  // 預載所有圖片
+  useEffect(() => {
+    let loadedCount = 0;
+    const totalImages = preloadImages.length;
+
+    const preloadImage = (src) => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.src = src;
+        img.onload = () => {
+          loadedCount++;
+          resolve();
+        };
+        img.onerror = () => {
+          console.warn(`Failed to load image: ${src}`);
+          loadedCount++;
+          resolve(); // 即使載入失敗也繼續
+        };
+      });
+    };
+
+    Promise.all(preloadImages.map(preloadImage))
+      .then(() => {
+        setImagesLoaded(true);
+        // 給一個短暫的延遲確保UI更新
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 500);
+      })
+      .catch(error => {
+        console.error('Image preloading error:', error);
+        // 即使有錯誤也繼續遊戲
+        setImagesLoaded(true);
+        setIsLoading(false);
+      });
+  }, []);
 
   // 音樂開關
   const toggleBgm = () => {
@@ -547,291 +613,297 @@ export default function Game() {
 
   return (
     <div className="flex flex-col items-center bg-black">
-      {/* 音效 */}
-      <audio ref={bgmRef} src="/game8images/bgm.mp3" loop />
-      <audio ref={soundClickRef} src="/game8images/soundClick.mp3" />
-      <audio ref={soundGoodRef} src="/game8images/soundGood.mp3" />
-      <audio ref={soundOppsRef} src="/game8images/soundOpps.mp3" />
-      <audio ref={soundComeRef} src="/game8images/come.mp3" />
-
-      {/* 音樂開關按鈕 */}
-      <img 
-        src={`${bgmIsPlaying ? "/game8images/soundon.png" : "/game8images/soundmuted.png"}`}
-        className="w-[30px] cursor-pointer z-50 absolute top-10 right-10"
-        onClick={toggleBgm}
-      />
-
-      {/* 返回按鈕 */}
-      <img 
-        src="/game8images/back.png"
-        className="w-[30px] cursor-pointer z-50 absolute top-10 left-10"
-        onClick={quitGame}
-      />
-
-      {/* Loading Screen */}
+      {/* Loading Screen - 修改載入畫面顯示進度 */}
       {isLoading && (
-        <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center">
           <div className="flex flex-col items-center">
-            <div className="w-16 h-16 border-t-4 border-b-4 border-white rounded-full animate-spin"></div>
-            <p className="mt-4 text-white text-xl">Loading...</p>
+            <div className="w-16 h-16 border-t-4 border-b-4 border-white rounded-full animate-spin mb-4"></div>
+            <p className="text-white text-xl mb-2">Loading...</p>
+            <p className="text-white text-sm">正在載入遊戲資源</p>
           </div>
         </div>
       )}
 
-      <div 
-        className="relative w-screen h-screen bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: "url('/game8images/background.png')",
-          minHeight: "100vh"
-        }}
-      >
-        {/* 開始遊戲遮罩 */}
-        {!gameStarted && (
-          <div className="absolute inset-0 bg-black/50 z-50 flex flex-col items-center justify-center">
-            <img
-              src="/game8images/start.png"
-              alt="Game Title"
-              className="w-[70%] h-[70%] object-contain mb-[-20px]"
-            />
-            <div className="flex gap-8">
+      {/* 只有在圖片都載入完成後才顯示遊戲內容 */}
+      {!isLoading && (
+        <>
+          {/* 音效 */}
+          <audio ref={bgmRef} src="/game8images/bgm.mp3" loop />
+          <audio ref={soundClickRef} src="/game8images/soundClick.mp3" />
+          <audio ref={soundGoodRef} src="/game8images/soundGood.mp3" />
+          <audio ref={soundOppsRef} src="/game8images/soundOpps.mp3" />
+          <audio ref={soundComeRef} src="/game8images/come.mp3" />
+
+          {/* 音樂開關按鈕 */}
+          <img 
+            src={`${bgmIsPlaying ? "/game8images/soundon.png" : "/game8images/soundmuted.png"}`}
+            className="w-[30px] cursor-pointer z-50 absolute top-10 right-10"
+            onClick={toggleBgm}
+          />
+
+          {/* 返回按鈕 */}
+          <img 
+            src="/game8images/back.png"
+            className="w-[30px] cursor-pointer z-50 absolute top-10 left-10"
+            onClick={quitGame}
+          />
+
+          <div 
+            className="relative w-screen h-screen bg-cover bg-center bg-no-repeat"
+            style={{
+              backgroundImage: "url('/game8images/background.png')",
+              minHeight: "100vh"
+            }}
+          >
+            {/* 開始遊戲遮罩 */}
+            {!gameStarted && (
+              <div className="absolute inset-0 bg-black/50 z-50 flex flex-col items-center justify-center">
+                <img
+                  src="/game8images/start.png"
+                  alt="Game Title"
+                  className="w-[70%] h-[70%] object-contain mb-[-20px]"
+                />
+                <div className="flex gap-8">
+                  <img
+                    src="/game8images/backPress.png"
+                    alt="Back to Menu"
+                    className="w-[200px] cursor-pointer transition-transform duration-200 hover:translate-y-[5px]"
+                    onClick={quitGame}
+                  />
+                  <img
+                    src="/game8images/startPress.png"
+                    alt="Start Game"
+                    className="w-[200px] cursor-pointer transition-transform duration-200 hover:translate-y-[5px]"
+                    onClick={handleStartGame}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 分數和目標 */}
+            <div className="absolute top-20 right-100 flex flex-col items-center gap-1 bg-white/70 p-3 rounded-lg border-2 border-[#D7CD77] shadow-md">
               <img
-                src="/game8images/backPress.png"
-                alt="Back to Menu"
-                className="w-[200px] cursor-pointer transition-transform duration-200 hover:translate-y-[5px]"
-                onClick={quitGame}
+                src="/game8images/score.png"
+                alt="score"
+                className="h-6 object-contain"
               />
               <img
-                src="/game8images/startPress.png"
-                alt="Start Game"
-                className="w-[200px] cursor-pointer transition-transform duration-200 hover:translate-y-[5px]"
-                onClick={handleStartGame}
+                src={`/game8images/number/${score}.png`}
+                alt={score.toString()}
+                className="h-10 object-contain"
               />
             </div>
-          </div>
-        )}
 
-        {/* 分數和目標 */}
-        <div className="absolute top-20 right-100 flex flex-col items-center gap-1 bg-white/70 p-3 rounded-lg border-2 border-[#D7CD77] shadow-md">
-          <img
-            src="/game8images/score.png"
-            alt="score"
-            className="h-6 object-contain"
-          />
-          <img
-            src={`/game8images/number/${score}.png`}
-            alt={score.toString()}
-            className="h-10 object-contain"
-          />
-        </div>
+            {/* 目標組合 */}
+            <div className="absolute top-12 left-1/2 -translate-x-1/2 flex flex-col items-center">
+              <div className="mb-2 w-[100px]">
+                <img
+                  src="/game8images/target.png"
+                  alt="目標串燒"
+                  className="w-full object-contain"
+                />
+              </div>
+              <div className="flex items-center">
+                {targetCombo.map((food, index) => (
+                  <React.Fragment key={index}>
+                    <div
+                      className="w-[60px] h-[60px] relative mx-1 bg-white/70 p-1 rounded border-2 border-[#D7CD77] shadow-md"
+                    >
+                      <img
+                        src={food.img}
+                        alt={food.name}
+                        className="w-full h-full object-contain"
+                      />
+                  </div>
+                    {index < targetCombo.length - 1 && (
+                      <span className="text-white text-2xl mx-1">➡️</span>
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
 
-        {/* 目標組合 */}
-        <div className="absolute top-12 left-1/2 -translate-x-1/2 flex flex-col items-center">
-          <div className="mb-2 w-[100px]">
-            <img
-              src="/game8images/target.png"
-              alt="目標串燒"
-              className="w-full object-contain"
-            />
-          </div>
-          <div className="flex items-center">
-            {targetCombo.map((food, index) => (
-              <React.Fragment key={index}>
+            {/* 老闆 */}
+            <div className="absolute top-[228px] left-[770px] w-[150px] h-[150px]">
+              {showCome && (
+              <img
+                  src="/game8images/come.png"
+                  alt="come"
+                  className="absolute -top-10 -left-16 w-[100px] h-[100px] object-contain z-10"
+                />
+              )}
+              <img
+                src={isBossGenerating ? "/game8images/boss1.png" : "/game8images/boss2.png"}
+                alt="boss"
+                className="w-full h-full object-contain"
+                style={{
+                  filter: "drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.5))"
+                }}
+              />
+            </div>
+
+           
+
+            {/* 下落中的食材 */}
+            <div className="absolute inset-0 pointer-events-none">
+              {fallingFoods.map(food => (
                 <div
-                  className="w-[60px] h-[60px] relative mx-1 bg-white/70 p-1 rounded border-2 border-[#D7CD77] shadow-md"
+                  key={food.id}
+                  className="absolute w-[80px] h-[80px]"
+                  style={{
+                    left: `${food.x}px`,
+                    top: `${Math.round(food.y)}px`,
+                    transform: "translate(-50%, -50%)",
+                    zIndex: 50,
+                    padding: "4px"
+                  }}
                 >
                   <img
                     src={food.img}
                     alt={food.name}
                     className="w-full h-full object-contain"
                   />
+                </div>
+              ))}
+            </div>
+
+            {/* Miss 提示 */}
+            {showMiss && (
+              <div 
+                className="absolute"
+                style={{
+                  left: `${skewerPosition + 200}px`,
+                  top: "500px",
+                  zIndex: 100,
+                  animation: "missAnimation 0.5s ease-out forwards"
+                }}
+              >
+                <img
+                  src="/game8images/miss.png"
+                  alt="Miss"
+                  className="w-[100px] object-contain"
+                />
               </div>
-                {index < targetCombo.length - 1 && (
-                  <span className="text-white text-2xl mx-1">➡️</span>
-                )}
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
+            )}
 
-        {/* 老闆 */}
-        <div className="absolute top-[228px] left-[770px] w-[150px] h-[150px]">
-          {showCome && (
-          <img
-              src="/game8images/come.png"
-              alt="come"
-              className="absolute -top-10 -left-16 w-[100px] h-[100px] object-contain z-10"
-            />
-          )}
-          <img
-            src={isBossGenerating ? "/game8images/boss1.png" : "/game8images/boss2.png"}
-            alt="boss"
-            className="w-full h-full object-contain"
-            style={{
-              filter: "drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.5))"
-            }}
-          />
-        </div>
+            {/* 組合結果提示 */}
+            {showComboMessage && (
+              <div 
+                className="absolute"
+                style={{
+                  left: `${skewerPosition + 200}px`,
+                  top: "500px",
+                  zIndex: 100,
+                  animation: "missAnimation 0.5s ease-out forwards"
+                }}
+              >
+                <img
+                  src={`/game8images/${comboMessage}.png`}
+                  alt={comboMessage}
+                  className="w-[200px] object-contain"
+                />
+              </div>
+            )}
 
-       
-
-        {/* 下落中的食材 */}
-        <div className="absolute inset-0 pointer-events-none">
-          {fallingFoods.map(food => (
+            {/* 竹籤 */}
             <div
-              key={food.id}
-              className="absolute w-[80px] h-[80px]"
+              className="absolute"
               style={{
-                left: `${food.x}px`,
-                top: `${Math.round(food.y)}px`,
-                transform: "translate(-50%, -50%)",
-                zIndex: 50,
-                padding: "4px"
+                left: `${skewerPosition}px`,
+                top: "435px",
+                width: "500px",
+                transition: "left 0.1s",
               }}
             >
+              {shouldShowMessage && (
+                <img
+                  src="/game8images/message.png"
+                  alt="message"
+                  className="absolute left-2/3 -translate-x-1/2 top-10 w-[350px] object-contain drop-shadow-2xl"
+                  style={{
+                    filter: "drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.5))"
+                  }}
+                />
+              )}
               <img
-                src={food.img}
-                alt={food.name}
+                src="/game8images/player.png"
+                alt="player"
                 className="w-full h-full object-contain"
               />
             </div>
-          ))}
-        </div>
 
-        {/* Miss 提示 */}
-        {showMiss && (
-          <div 
-            className="absolute"
-            style={{
-              left: `${skewerPosition + 200}px`,
-              top: "500px",
-              zIndex: 100,
-              animation: "missAnimation 0.5s ease-out forwards"
-            }}
-          >
-            <img
-              src="/game8images/miss.png"
-              alt="Miss"
-              className="w-[100px] object-contain"
-            />
-          </div>
-        )}
-
-        {/* 組合結果提示 */}
-        {showComboMessage && (
-          <div 
-            className="absolute"
-            style={{
-              left: `${skewerPosition + 200}px`,
-              top: "500px",
-              zIndex: 100,
-              animation: "missAnimation 0.5s ease-out forwards"
-            }}
-          >
-            <img
-              src={`/game8images/${comboMessage}.png`}
-              alt={comboMessage}
-              className="w-[200px] object-contain"
-            />
-          </div>
-        )}
-
-        {/* 竹籤 */}
-        <div
-          className="absolute"
-          style={{
-            left: `${skewerPosition}px`,
-            top: "435px",
-            width: "500px",
-            transition: "left 0.1s",
-          }}
-        >
-          {shouldShowMessage && (
-            <img
-              src="/game8images/message.png"
-              alt="message"
-              className="absolute left-2/3 -translate-x-1/2 top-10 w-[350px] object-contain drop-shadow-2xl"
-              style={{
-                filter: "drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.5))"
-              }}
-            />
-          )}
-          <img
-            src="/game8images/player.png"
-            alt="player"
-            className="w-full h-full object-contain"
-          />
-        </div>
-
-        {/* 已插入的食材 */}
-        {skeweredFoods.map((food, index) => (
-          <div
-            key={index}
-            className="absolute w-[80px] h-[80px]"
-            style={{
-              left: `${skewerPosition + index * 80 + 200}px`,
-              top: "565px",
-              padding: "4px",
-              borderRadius: "8px",
-              transition: "left 0.1s",
-            }}
-          >
-            <img
-              src={food.img}
-              alt={food.name}
-              className="w-full h-full object-contain"
-          />
-          </div>
-        ))}
-
-        {/* 煙霧特效 */}
-        {smokeEffects.map(smoke => (
-        <div
-            key={smoke.id}
-            className="absolute pointer-events-none"
-          style={{
-              left: `${smoke.x}px`,
-              top: `${smoke.y}px`,
-              width: '80px',
-              height: '80px',
-              zIndex: 40
-          }}
-          >
-            <img
-              src="/game8images/smoke.png"
-              alt="smoke"
-              className="w-full h-full object-contain"
-              style={{
-                animation: 'smokeAnimation 0.5s ease-out forwards'
-              }}
-            />
-          </div>
-        ))}
-
-        {/* 結束畫面 */}
-        {gameOver && (
-          <div className="absolute inset-0 bg-black/50 z-50 flex flex-col items-center justify-center">
-            <img
-              src={`/game8images/${score >= 6 ? 'win' : 'loss'}.png`}
-              alt="Game Result"
-              className="w-[70%] h-[70%] object-contain mb-[-20px]"
-            />
-            <div className="flex gap-8">
-              <img
-                src="/game8images/againPress.png"
-                alt="Play Again"
-                className="w-[200px] cursor-pointer transition-transform duration-200 hover:translate-y-[5px]"
-                onClick={handlePlayAgain}
+            {/* 已插入的食材 */}
+            {skeweredFoods.map((food, index) => (
+              <div
+                key={index}
+                className="absolute w-[80px] h-[80px]"
+                style={{
+                  left: `${skewerPosition + index * 80 + 200}px`,
+                  top: "565px",
+                  padding: "4px",
+                  borderRadius: "8px",
+                  transition: "left 0.1s",
+                }}
+              >
+                <img
+                  src={food.img}
+                  alt={food.name}
+                  className="w-full h-full object-contain"
               />
-              <img
-                src="/game8images/homePress.png"
-                alt="Back to Home"
-                className="w-[200px] cursor-pointer transition-transform duration-200 hover:translate-y-[5px]"
-                onClick={handleFinish}
-              />
-            </div>
+              </div>
+            ))}
+
+            {/* 煙霧特效 */}
+            {smokeEffects.map(smoke => (
+            <div
+                key={smoke.id}
+                className="absolute pointer-events-none"
+              style={{
+                  left: `${smoke.x}px`,
+                  top: `${smoke.y}px`,
+                  width: '80px',
+                  height: '80px',
+                  zIndex: 40
+              }}
+              >
+                <img
+                  src="/game8images/smoke.png"
+                  alt="smoke"
+                  className="w-full h-full object-contain"
+                  style={{
+                    animation: 'smokeAnimation 0.5s ease-out forwards'
+                  }}
+                />
+              </div>
+            ))}
+
+            {/* 結束畫面 */}
+            {gameOver && (
+              <div className="absolute inset-0 bg-black/50 z-50 flex flex-col items-center justify-center">
+                <img
+                  src={`/game8images/${score >= 6 ? 'win' : 'loss'}.png`}
+                  alt="Game Result"
+                  className="w-[70%] h-[70%] object-contain mb-[-20px]"
+                />
+                <div className="flex gap-8">
+                  <img
+                    src="/game8images/againPress.png"
+                    alt="Play Again"
+                    className="w-[200px] cursor-pointer transition-transform duration-200 hover:translate-y-[5px]"
+                    onClick={handlePlayAgain}
+                  />
+                  <img
+                    src="/game8images/homePress.png"
+                    alt="Back to Home"
+                    className="w-[200px] cursor-pointer transition-transform duration-200 hover:translate-y-[5px]"
+                    onClick={handleFinish}
+                  />
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </>
+      )}
 
       <style jsx>{`
         @keyframes fadeOut {
