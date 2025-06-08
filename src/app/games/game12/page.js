@@ -41,6 +41,7 @@ export default function IceCreamCatchGame() {
   const eatIceCreamAudioRef = useRef(null);
   const bitterMelonAudioRef = useRef(null);
   const prevPlayRef = useRef(false);
+  const [muted, setMuted] = useState(false);
 
   const router = useRouter();
 
@@ -1142,6 +1143,31 @@ export default function IceCreamCatchGame() {
               draggable={false}
             />
           </button>
+          <button
+            tabIndex={-1}
+            onClick={() => setMuted((m) => !m)}
+            aria-label={muted ? "打開音效" : "關閉音效"}
+            style={{
+              width: 62,
+              height: 62,
+              border: "none",
+              background: "rgba(255,255,255,0.67)",
+              borderRadius: "50%",
+              boxShadow: "0 2px 18px #8886",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 0,
+            }}
+          >
+            <img
+              src={muted ? "/game12/sound-off.png" : "/game12/sound-on.png"}
+              alt={muted ? "音效已關閉" : "音效已開啟"}
+              style={{ width: 36, height: 36, opacity: muted ? 0.45 : 1 }}
+              draggable={false}
+            />
+          </button>
         </div>
       )}
 
@@ -1213,18 +1239,21 @@ export default function IceCreamCatchGame() {
         loop
         preload="auto"
         style={{ display: "none" }}
+        muted={muted}
       />
       <audio
         ref={eatIceCreamAudioRef}
         src="/game12/eaticecream.mp3"
         preload="auto"
         style={{ display: "none" }}
+        muted={muted}
       />
       <audio
         ref={bitterMelonAudioRef}
         src="/game12/bittermelon.mp3"
         preload="auto"
         style={{ display: "none" }}
+        muted={muted}
       />
     </>
   );
