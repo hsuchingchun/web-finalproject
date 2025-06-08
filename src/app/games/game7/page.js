@@ -1,6 +1,13 @@
 "use client"
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import localFont from 'next/font/local';
+import YouTube from 'react-youtube';
+
+const aura = localFont({
+  src: '../../../../public/fonts/aura.ttf',
+  variable: '--font-aura'
+});
 
 export default function Game7() {
   const router = useRouter();
@@ -9,6 +16,10 @@ export default function Game7() {
   const [gameStarted, setGameStarted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(15);
   const [gameOver, setGameOver] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  const [player, setPlayer] = useState(null);
+  const playerRef = useRef(null);
   
   // 初始化拼圖塊，每個拼圖塊都有唯一的ID
   const initialPieces = Array.from({ length: 9 }, (_, i) => ({
@@ -31,14 +42,68 @@ export default function Game7() {
   const [isComplete, setIsComplete] = useState(false);
   
   const imageUrl = "/game7/puzzle.jpg";
-  const imageSize = 600;
-  const pieceSize = 200;
+  const imageSize = 450;
+  const pieceSize = 150;
   
+  // YouTube 播放器選項
+  const opts = {
+    height: '0',
+    width: '0',
+    playerVars: {
+      autoplay: 1,
+      controls: 0,
+      disablekb: 1,
+      enablejsapi: 1,
+      fs: 0,
+      modestbranding: 1,
+      rel: 0,
+      loop: 1,
+      playlist: 'IfkdMZYIsi8'
+    },
+  };
+
+  // 處理 YouTube 播放器準備就緒
+  const onReady = (event) => {
+    playerRef.current = event.target;
+    event.target.setVolume(50);
+    event.target.playVideo();
+    setIsMusicPlaying(true);
+  };
+
+  // 處理播放器錯誤
+  const onError = (error) => {
+    console.error('YouTube Player Error:', error);
+  };
+
+  // 切換音樂播放狀態
+  const toggleMusic = () => {
+    if (playerRef.current) {
+      if (isMusicPlaying) {
+        playerRef.current.pauseVideo();
+      } else {
+        playerRef.current.playVideo();
+      }
+      setIsMusicPlaying(!isMusicPlaying);
+    }
+  };
+
   useEffect(() => {
     setIsClient(true);
     const stored = localStorage.getItem("status");
     if (stored) setStatus(parseInt(stored));
     setPiecesInTray(shuffleArray(initialPieces));
+
+    // 設置 3 秒的 loading 時間
+    const loadingTimer = setTimeout(() => {
+      setIsLoading(false);
+    }, 3000);
+
+    return () => {
+      clearTimeout(loadingTimer);
+      if (playerRef.current) {
+        playerRef.current.destroy();
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -139,26 +204,69 @@ export default function Game7() {
     setIsComplete(isPuzzleComplete);
   }, [bins]);
 
-  if (!isClient) {
+  if (isLoading) {
     return (
       <main className="flex flex-col items-center justify-center min-h-screen bg-[#f0e6d2] p-4">
-        <h1 className="text-4xl font-bold mb-8 text-[#4a4a4a] font-pixel">滑板game</h1>
-        <div className="text-xl text-[#4a4a4a]">Loading</div>
+        {/* YouTube 播放器（隱藏） */}
+        <div className="hidden">
+          <YouTube
+            videoId="IfkdMZYIsi8"
+            opts={opts}
+            onReady={onReady}
+            onError={onError}
+            iframeClassName="hidden"
+          />
+        </div>
+        <h1 className="text-4xl font-bold mb-8 text-[#4a4a4a] font-['Aura']">滑板拼圖挑戰</h1>
+        <div className="text-xl text-[#4a4a4a] font-['Aura'] tracking-wider">Loading...</div>
       </main>
     );
   }
 
+  if (!isClient) {
+    return null;
+  }
+
   return (
     <main className="relative flex flex-col items-center justify-center min-h-screen bg-[#f0e6d2] p-4">
-      <h1 className="text-2xl font-bold mb-8 text-[#4a4a4a] font-pixel">滑板game 考驗你的手眼協調</h1>
+      {/* YouTube 播放器（隱藏） */}
+      <div className="hidden">
+        <YouTube
+          videoId="IfkdMZYIsi8"
+          opts={opts}
+          onReady={onReady}
+          onError={onError}
+          iframeClassName="hidden"
+        />
+      </div>
+
+      {/* 音樂控制按鈕 */}
+      <button
+        onClick={toggleMusic}
+        className="fixed top-4 right-4 bg-[#4a4a4a] text-white p-2 rounded-full hover:bg-[#2a2a2a] transition-colors duration-200 z-50"
+        aria-label={isMusicPlaying ? "關閉音樂" : "開啟音樂"}
+      >
+        {isMusicPlaying ? (
+         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+       </svg>
+        ) : (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+        </svg>
+        )}
+      </button>
+
+      <h1 className="text-2xl font-bold text-[#4a4a4a] font-['Aura'] tracking-wider">考驗你的手眼協調</h1>
       
       {!gameStarted && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[#98fb98] text-[#2e5a2e] rounded-lg border-4 border-[#2e5a2e] font-pixel shadow-lg p-8 transform scale-110 flex flex-col items-center">
-            <h2 className="text-xl font-bold mb-4 text-center">寫論文要眼明手快，手眼協調！</h2>
-            <h2 className="text-xl font-bold mb-4">請在15秒內完成滑板拼圖！</h2>
+          <div className="bg-[#98fb98] text-[#2e5a2e] rounded-lg border-4 border-[#2e5a2e] font-['Aura'] shadow-lg p-8 transform scale-110 flex flex-col items-center">
+            <h2 className="text-xl font-bold mb-4 text-center tracking-wider">寫論文要眼明手快，手眼協調唷</h2>
+            <h2 className="text-xl font-bold mb-4 tracking-wider">請在15秒內完成滑板拼圖！</h2>
             <button 
-              className="w-full px-6 py-3 bg-[#2e5a2e] text-white rounded-lg border-2 border-[#1a3a1a] hover:bg-[#1a3a1a] font-pixel transition-transform hover:scale-105"
+              className="w-full px-6 py-3 bg-[#2e5a2e] text-white rounded-lg border-2 border-[#1a3a1a] hover:bg-[#1a3a1a] font-['Aura'] transition-transform hover:scale-105"
               onClick={handleStartGame}
             >
               開始遊戲
@@ -169,10 +277,10 @@ export default function Game7() {
 
       {gameOver && !isComplete && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[#ff6b6b] text-[#4a1a1a] rounded-lg border-4 border-[#4a1a1a] font-pixel shadow-lg p-8 transform scale-110">
-            <h2 className="text-xl font-bold mb-4">失敗！論文進度真堪憂呀</h2>
+          <div className="bg-[#ff6b6b] text-[#4a1a1a] rounded-lg border-4 border-[#4a1a1a] font-['Aura'] shadow-lg p-8 transform scale-110">
+            <h2 className="text-xl font-bold mb-4 tracking-wider">失敗，動作太慢喔！</h2>
             <button 
-              className="w-full px-6 py-3 bg-[#4a1a1a] text-white rounded-lg border-2 border-[#2a0a0a] hover:bg-[#2a0a0a] font-pixel transition-transform hover:scale-105"
+              className="w-full px-6 py-3 bg-[#4a1a1a] text-white rounded-lg border-2 border-[#2a0a0a] hover:bg-[#2a0a0a] font-['Aura'] transition-transform hover:scale-105"
               onClick={handleStartGame}
             >
               重新開始
@@ -183,10 +291,10 @@ export default function Game7() {
       
       {isComplete && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[#98fb98] text-[#2e5a2e] rounded-lg border-4 border-[#2e5a2e] font-pixel shadow-lg p-8 transform scale-110">
-            <h2 className="text-xl font-bold mb-4">恭喜你完成，真是手眼協調好寶寶</h2>
+          <div className="bg-[#98fb98] text-[#2e5a2e] rounded-lg border-4 border-[#2e5a2e] font-['Aura'] shadow-lg p-8 transform scale-110">
+            <h2 className="text-xl font-bold mb-4 tracking-wider">恭喜你完成，真是手眼協調好寶寶</h2>
             <button 
-              className="w-full px-6 py-3 bg-[#2e5a2e] text-white rounded-lg border-2 border-[#1a3a1a] hover:bg-[#1a3a1a] font-pixel transition-transform hover:scale-105"
+              className="w-full px-6 py-3 bg-[#2e5a2e] text-white rounded-lg border-2 border-[#1a3a1a] hover:bg-[#1a3a1a] font-['Aura'] transition-transform hover:scale-105"
               onClick={handleFinish}
             >
               返回首頁
@@ -196,7 +304,7 @@ export default function Game7() {
       )}
 
       {gameStarted && !gameOver && (
-        <div className="absolute top-4 right-4 bg-[#4a4a4a] text-white px-4 py-2 rounded-lg font-pixel">
+        <div className="bg-orange-600 text-white px-4 py-2 rounded-lg font-['Aura'] m-5">
           剩餘時間: {timeLeft} 秒
         </div>
       )}
