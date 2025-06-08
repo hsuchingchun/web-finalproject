@@ -40,7 +40,7 @@ export default function Game2() {
     popSound.current = new Audio("/game2/pop.mp3");
     bgmAudio.current = new Audio("/game2/fun-bgm.mp3");
     bgmAudio.current.loop = true;
-    bgmAudio.current.volume = 0.3;
+    bgmAudio.current.volume = 1;
   }, []);
 
   useEffect(() => {
