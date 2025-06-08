@@ -18,8 +18,15 @@ function generateArrow(id) {
     direction: getRandomDirection(),
     status: "falling",
     feedback: null,
+    hasPassedZone: false,
   };
 }
+
+// 動態計算判定距離的函數
+const getJudgmentDistance = (zoneRect) => {
+  // 使用判定區域高度的比例來計算，而不是固定70像素
+  return zoneRect ? zoneRect.height * 0.7 : 70; // 0.7 可以根據需要調整
+};
 
 export default function Game9() {
   const router = useRouter();
@@ -59,23 +66,21 @@ export default function Game9() {
   }, []);
 
   const handleFinish = useCallback(() => {
-    if (gameFinishedRef.current) return; // 防止重複執行
+    if (gameFinishedRef.current) return;
     gameFinishedRef.current = true;
 
-    console.log("Game finished! Final score:", score); // 調試用
+    console.log("Game finished! Final score:", score);
 
     clearAllIntervals();
     setGameActive(false);
 
-    // 使用當前的狀態值
     setStatus((prevStatus) => {
       const newStatus = prevStatus - 1;
       localStorage.setItem("status", newStatus.toString());
-      console.log("Status updated from", prevStatus, "to", newStatus); // 調試用
+      console.log("Status updated from", prevStatus, "to", newStatus);
       return newStatus;
     });
 
-    // 延遲跳轉，確保狀態更新完成
     setTimeout(() => {
       router.push("/");
     }, 100);
@@ -85,27 +90,24 @@ export default function Game9() {
   const startGame = useCallback(() => {
     if (gameActive || gameFinishedRef.current) return;
 
-    console.log("Starting game..."); // 調試用
+    console.log("Starting game...");
     setGameActive(true);
 
-    // 重置遊戲狀態
     arrowIdRef.current = 0;
     setArrows([]);
     setScore(0);
 
-    // 清理之前的 intervals（以防萬一）
     clearAllIntervals();
 
     // 箭頭生成
     intervalRefs.current.arrowGeneration = setInterval(() => {
       const currentId = arrowIdRef.current;
-      console.log("Generating arrow:", currentId); // 調試用
+      console.log("Generating arrow:", currentId);
 
       if (currentId >= 25) {
         clearInterval(intervalRefs.current.arrowGeneration);
         intervalRefs.current.arrowGeneration = null;
-        console.log("All arrows generated, finishing game..."); // 調試用
-        handleFinish();
+        console.log("All arrows generated, waiting for them to exit...");
         return;
       }
 
@@ -118,20 +120,46 @@ export default function Game9() {
       setArrows((prev) => prev.map((arrow) => ({ ...arrow, y: arrow.y + 10 })));
     }, 30);
 
-    // 箭頭清理（錯過的箭頭）
+    // 修正的箭頭清理和miss檢測
     intervalRefs.current.arrowCleanup = setInterval(() => {
-      setArrows((prev) =>
-        prev.map((a) => {
-          if (a.status === "falling" && a.y > 650) {
-            return { ...a, status: "missed" };
+      setArrows((prev) => {
+        const updated = prev.map((a) => {
+          if (a.status === "falling") {
+            const directionIndex = directions.indexOf(a.direction);
+            const zoneRect =
+              scoreZoneRefs.current[directionIndex]?.getBoundingClientRect();
+
+            if (zoneRect) {
+              const zoneY = zoneRect.top + zoneRect.height / 2;
+              let arrowHeight =
+                a.direction === "up" || a.direction === "down" ? 100 : 50;
+              const arrowCenterY = a.y + arrowHeight / 2;
+
+              // 使用動態計算的判定距離
+              const judgmentDistance = getJudgmentDistance(zoneRect);
+
+              // 如果箭頭中心剛好超過判定區域，且沒被按過，標記為missed
+              if (arrowCenterY > zoneY + judgmentDistance && !a.hasPassedZone) {
+                setCenterFeedback("miss");
+                setTimeout(() => setCenterFeedback(null), 500);
+                return { ...a, status: "missed", hasPassedZone: true };
+              }
+            }
+
+            // 使用視窗高度的比例來判斷是否完全離開屏幕
+            if (a.y > window.innerHeight * 0.9) {
+              return { ...a, status: "missed" };
+            }
           }
           return a;
-        })
-      );
-    }, 300);
+        });
+
+        return updated;
+      });
+    }, 50);
   }, [gameActive, handleFinish, clearAllIntervals]);
 
-  // 鍵盤事件處理
+  // 修正的鍵盤事件處理
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (showIntro && (e.code === "Space" || e.key === " ")) {
@@ -144,7 +172,11 @@ export default function Game9() {
       if (index === -1 || showIntro || !gameActive) return;
 
       const zoneRect = scoreZoneRefs.current[index]?.getBoundingClientRect();
+      if (!zoneRect) return;
+
       const zoneY = zoneRect.top + zoneRect.height / 2;
+      const judgmentDistance = getJudgmentDistance(zoneRect);
+      const perfectDistance = judgmentDistance * 0.5;
 
       // 擊中效果
       setHitEffects((prev) => {
@@ -160,66 +192,90 @@ export default function Game9() {
         });
       }, 300);
 
-      // 計分邏輯 - 修正部分
+      // 修正的計分邏輯
       let scoreToAdd = 0;
+      let feedbackType = null;
 
-      setArrows((prev) => {
-        let updated = [...prev];
-        let hasScored = false;
+      // 查找可以擊中的箭頭
+      const currentArrows = arrows;
+      let hitArrow = null;
 
-        for (let i = 0; i < updated.length; i++) {
-          const arrow = updated[i];
-          if (
-            arrow.direction === directions[index] &&
-            arrow.status === "falling"
-          ) {
-            let arrowHeight =
-              arrow.direction === "up" || arrow.direction === "down" ? 100 : 50;
-            const arrowCenterY = arrow.y + arrowHeight / 2;
-            const dy = Math.abs(arrowCenterY - zoneY);
+      for (let i = 0; i < currentArrows.length; i++) {
+        const arrow = currentArrows[i];
+        if (
+          arrow.direction === directions[index] &&
+          arrow.status === "falling"
+        ) {
+          let arrowHeight =
+            arrow.direction === "up" || arrow.direction === "down" ? 100 : 50;
+          const arrowCenterY = arrow.y + arrowHeight / 2;
+          const dy = Math.abs(arrowCenterY - zoneY);
 
-            if (dy <= 70) {
-              if (dy <= 35) {
-                updated[i] = { ...arrow, feedback: "perfect" };
-                hasScored = "perfect";
-              } else {
-                updated[i] = { ...arrow, feedback: "good" };
-                hasScored = "good";
-              }
-              break;
+          // 使用動態判定距離
+          if (dy <= judgmentDistance) {
+            if (dy <= perfectDistance) {
+              scoreToAdd = 5;
+              feedbackType = "perfect";
+              hitArrow = arrow;
+            } else {
+              scoreToAdd = 3;
+              feedbackType = "good";
+              hitArrow = arrow;
             }
+            break;
+          }
+          // 箭頭已經過了判定區域（太晚按）
+          else if (
+            arrowCenterY > zoneY + judgmentDistance &&
+            !arrow.hasPassedZone
+          ) {
+            feedbackType = "miss";
+            // 標記這個箭頭為已處理，避免重複miss
+            setArrows((prev) =>
+              prev.map((a) =>
+                a.id === arrow.id
+                  ? { ...a, status: "missed", hasPassedZone: true }
+                  : a
+              )
+            );
+            break;
           }
         }
+      }
 
-        // 在這裡直接更新分數
-        if (hasScored === "perfect") {
-          setScore((s) => s + 5);
-          setCenterFeedback("perfect");
-        } else if (hasScored === "good") {
-          setScore((s) => s + 3);
-          setCenterFeedback("good");
-        } else {
-          setCenterFeedback("miss");
-        }
+      // 更新箭頭狀態
+      if (hitArrow) {
+        setArrows((prev) =>
+          prev.map((arrow) =>
+            arrow.id === hitArrow.id
+              ? { ...arrow, feedback: feedbackType, status: "hit" }
+              : arrow
+          )
+        );
+      }
 
-        if (hasScored) {
-          setTimeout(() => {
-            setCenterFeedback(null);
-          }, 500); // 顯示 0.5 秒
-        }
+      // 更新分數
+      if (scoreToAdd > 0) {
+        setScore((s) => s + scoreToAdd);
+      }
 
-        return updated;
-      });
+      // 顯示反饋（只有在有反饋時才顯示）
+      if (feedbackType) {
+        setCenterFeedback(feedbackType);
+        setTimeout(() => {
+          setCenterFeedback(null);
+        }, 500);
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showIntro, gameActive]);
+  }, [showIntro, gameActive, arrows]);
 
   // 當 showIntro 變為 false 時開始遊戲
   useEffect(() => {
     if (!showIntro && !gameActive && !gameFinishedRef.current) {
-      console.log("Intro finished, starting game"); // 調試用
+      console.log("Intro finished, starting game");
       startGame();
     }
   }, [showIntro, gameActive, startGame]);
@@ -230,6 +286,20 @@ export default function Game9() {
       clearAllIntervals();
     };
   }, [clearAllIntervals]);
+
+  useEffect(() => {
+    if (
+      arrowIdRef.current >= 25 &&
+      arrows.length === 25 &&
+      arrows.every((a) => a.status !== "falling") &&
+      !gameFinishedRef.current
+    ) {
+      console.log("All arrows resolved. Finishing in 1 second...");
+      setTimeout(() => {
+        handleFinish();
+      }, 1000);
+    }
+  }, [arrows, handleFinish]);
 
   return (
     <div className="bg-[url(/game9/background.png)] h-screen overflow-hidden flex items-center justify-center">
@@ -242,18 +312,18 @@ export default function Game9() {
             height={508}
             priority
           />
-          <Image
-            src="/game9/start.png"
-            alt="game start"
-            width={310}
-            height={100}
-            className="animate-bounce"
-          />
+          <div className=" flex justify-center items-center px-5 text-3xl rounded-4xl border-6 border-[#D7CD77] text-white w-[310px] h-[100px] animate-bounce">
+            按下
+            <div className="text-black rounded-md bg-white w-[90px] mx-2 flex justify-center items-center">
+              Space
+            </div>
+            鍵開始
+          </div>
         </div>
       ) : (
         <div className="flex items-center gap-5 h-full">
           <p className="absolute top-10 left-20 text-4xl font-medium text-white">
-            {score} {/* 調試用 - 顯示遊戲狀態 */}
+            {score}
             <span className="text-sm block">
               Arrows: {arrowIdRef.current}/25
             </span>
@@ -316,16 +386,6 @@ export default function Game9() {
                       }}
                       className="z-20 transition-all duration-75"
                     >
-                      {/* {a.feedback && (
-                        <div
-                          className={`absolute inset-0 rounded-full ${
-                            a.feedback === "perfect"
-                              ? "bg-yellow-300"
-                              : "bg-blue-300"
-                          } animate-ping opacity-50`}
-                        />
-                      )} */}
-
                       <div
                         className={`${wrapperClass} flex items-center justify-center`}
                       >
