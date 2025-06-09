@@ -32,22 +32,51 @@ export default function Game11() {
   const [gameOver, setGameOver] = useState(false);
   const [gameWin, setGameWin] = useState(false);
   const playerRef = useRef(null);
-  const [obstacles1, setObstacles1] = useState([]);
-  const [obstacles2, setObstacles2] = useState([]);
-  const [timeLeft, setTimeLeft] = useState(50);
+  const [obstacles, setObstacles] = useState([]);
+  const [timeLeft, setTimeLeft] = useState(200);
   
-  // 重新開始
+  const lastTimeRef = useRef(performance.now());
+  const lastObstacleTimeRef = useRef(performance.now());
+  const obstacleIntervalRef = useRef(getRandomObstacleInterval());
+
+  function getRandomObstacleInterval() {
+    return 650 + Math.random() * 1000; // 障礙物生成間隔
+  }
+
+  function addObstacle() {
+    const obstacleType = Math.floor(Math.random() * 2); // 0: 上方, 1: 下方
+    setObstacles(prev => [...prev, {
+      id: Date.now(),
+      isTop: obstacleType === 0,
+      left: 100 // 初始位置在右側
+    }]);
+  }
+
+  function updateObstaclePosition(deltaTime) {
+    setObstacles(prev =>
+      prev
+        .map(obstacle => ({
+          ...obstacle,
+          left: obstacle.left - 0.075 * deltaTime // 降低移動速度
+        }))
+        .filter(obstacle => obstacle.left > -10) // 移出畫面則刪除
+    );
+  }
+
+  // restart game
   const restartGame = () => {
     setGameOver(false);
     setGameWin(false);
-    setTimeLeft(50);
+    setTimeLeft(200);
     setGameStarted(true);
-    setObstacles1([]);
-    setObstacles2([]);
+    setObstacles([]);
     setIsSliding(false);
+    lastTimeRef.current = performance.now();
+    lastObstacleTimeRef.current = performance.now();
+    obstacleIntervalRef.current = getRandomObstacleInterval();
   };
 
-  // 開始頁面
+  // start page
   useEffect(() => {
     const handleStartKeyDown = (event) => {
       if (event.code === 'Space' && !gameStarted) {
@@ -73,28 +102,28 @@ export default function Game11() {
   // 遊戲過程
   useEffect(() => {
     const handleKeyDown = (event) => {
-      // 按空白鍵或向上鍵跳躍
+      // press spacebar or up to jump
       if ((event.code === 'Space' || event.code === 'ArrowUp') && !isJumping) {  
         setIsJumping(true);
         setTimeout(() => {
           setIsJumping(false);
-        }, 500);
+        }, 700);
       }
 
-      // 按下鍵盤向下鍵開始滑行
+      // press down to slide
       if (event.code === 'ArrowDown') {
         setIsSliding(true);
       }
     };
 
     const handleKeyUp = (event) => {
-      // 放開向下鍵結束滑行
+      // release down key to end slide
       if (event.code === 'ArrowDown') {
         setIsSliding(false);
       }
     };
 
-    // 倒計時計時器
+    // 倒計時
     let timer;
     if (gameStarted && !gameOver && !gameWin) {
       timer = setInterval(() => {
@@ -108,26 +137,32 @@ export default function Game11() {
       }, 100);
     }
 
-    // 障礙物生成計時器
-    let obstacleTimer1;
-    let obstacleTimer2;
-    if (gameStarted && !gameOver && !gameWin) {
-      // 空中障礙物生成延遲
-      // obstacleTimer1 = setInterval(() => {
-      //   setObstacles1(prev => [...prev, { id: Date.now() }]);
-      // }, 1000);
+    // 障礙物生成
+    let animationId;
+    const gameLoop = (currentTime) => {
+      if (gameStarted && !gameOver && !gameWin) {
+        const deltaTime = currentTime - lastTimeRef.current;
 
-      // 地面障礙物生成延遲
-      obstacleTimer2 = setInterval(() => {
-        setObstacles2(prev => [...prev, { id: Date.now() + 1 }]);
-      }, 1500);
-    }
+        // 生成新障礙物判定
+        if (currentTime - lastObstacleTimeRef.current > obstacleIntervalRef.current) {
+          addObstacle();
+          lastObstacleTimeRef.current = currentTime;
+          obstacleIntervalRef.current = getRandomObstacleInterval();
+        }
 
+        updateObstaclePosition(deltaTime);
+        lastTimeRef.current = currentTime;
+      }
+      animationId = requestAnimationFrame(gameLoop);
+    };
+
+    animationId = requestAnimationFrame(gameLoop);
+
+    // 碰撞檢測
     const isAlive = setInterval(() => {
       if (playerRef.current) {
         const playerBox = playerRef.current.getBoundingClientRect();
         
-        // 檢查所有障礙物的碰撞
         const obstacles = document.querySelectorAll('.obstacle');
         obstacles.forEach(obstacle => {
           const obstacleBox = obstacle.getBoundingClientRect();
@@ -141,7 +176,6 @@ export default function Game11() {
           if (isCollision) {
             setGameOver(true);
           }
-
         });
       }
     }, 10);
@@ -156,19 +190,27 @@ export default function Game11() {
       window.removeEventListener('keyup', handleKeyUp);
       clearInterval(isAlive);
       clearInterval(timer);
-      clearInterval(obstacleTimer1);
-      clearInterval(obstacleTimer2);
+      cancelAnimationFrame(animationId);
     };
   }, [isJumping, isSliding, gameStarted, gameOver, gameWin]);  
 
   // game start UI
   if (!gameStarted) {
     return (
-      <div className="w-full h-screen bg-white flex flex-col items-center justify-center cursor-pointer">
-        <div className={`text-6xl font-bold mt-16 mb-2 text-center text-[#CD4447] ${pixelify.className} z-10`}>PARKOUR</div>
-        <div className={`text-2xl font-semibold mb-16 text-center text-gray-400 z-10`}>在準時畢業前越過所有困難吧！</div>
-        <div className={`text-xl font-semibold mb-8 text-center text-gray-300 ${pixelify.className} blink-animation z-10`}>
-          &#60; Touch or Click to start running &#62;
+      <div className="w-full h-screen bg-white font-semibold flex flex-col items-center justify-center cursor-pointer">
+        <div className={`text-m text-center text-gray-300 absolute top-8 left-8 text-left ${pixelify.className} z-10`}>
+          ● Press spacebar or up to jump<br/>● Press down to slide
+        </div>
+        <div 
+          onClick={() => router.push("/")}
+          className={`text-xl text-center text-[#CD4447] absolute top-8 right-8 text-left ${pixelify.className} z-10 cursor-pointer hover:text-gray-400 transition-colors`}
+        >
+          Exit
+        </div>
+        <div className={`text-6xl mt-12 mb-1 text-center text-[#CD4447] ${pixelify.className} z-10`}>PARKOUR</div>
+        <div className={`text-2xl mb-12 text-center text-gray-400 tracking-widest z-10`}>在準時畢業前越過所有困難抵達終點吧</div>
+        <div className={`text-2xl mb-8 text-center text-gray-300 ${pixelify.className} blink-animation z-10`}>
+          &#60; Click or press spacebar to start running &#62;
         </div>
         <div
         className="absolute top-0 left-0 w-full h-full"
@@ -177,7 +219,9 @@ export default function Game11() {
           backgroundSize: "100%",
           backgroundRepeat: "no-repeat",
           backgroundPosition: "center",
-        }}></div>
+        }}>
+          <div className='w-full h-full bg-black/30'></div>
+        </div>
       </div>
     );
   }
@@ -185,18 +229,28 @@ export default function Game11() {
   // game over UI
   if (gameOver) {
     return (
-      <div className="w-full h-screen bg-white flex flex-col items-center justify-center">
-        <div className={`text-4xl font-bold mb-2 text-red-500 ${pixelify.className} z-10`}>Defeat</div>
-        <div className={`text-xl font-medium mb-4 text-red-500 ${pixelify.className} z-10`}>再...再跑一次吧...</div>
-        <div className={`text-2xl mb-8 text-white ${pixelify.className} z-10`}>
-          畢業倒數天數: {timeLeft} 天
+      <div className="w-full h-screen bg-white flex flex-col items-center justify-center tracking-widest">
+        <div className={`text-6xl font-bold mb-2 text-[#CD4447] ${pixelify.className} z-10`}>Defeat</div>
+        <div className={`text-2xl/10 font-semibold text-gray-400 text-center z-10`}>
+          畢業倒數天數: {timeLeft} 天<br/>
+          還有時間再跑一次！！！
         </div>
-        <button 
-          onClick={restartGame}
-          className={`px-8 py-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-xl ${pixelify.className} z-10`}
-        >
-          重新開始
-        </button>
+        
+        <div className={`flex flex-row gap-8`}>
+          <button 
+            onClick={restartGame}
+            className={`text-gray-100 hover:text-gray-400 transition-colors text-xl mt-8 cursor-pointer ${pixelify.className} z-10`}
+          >
+            PLAY AGAIN
+          </button>
+          <button 
+            onClick={() => router.push("/")}
+            className={`text-[#CD4447] hover:text-gray-400 transition-colors text-xl mt-8 cursor-pointer ${pixelify.className} z-10`}
+          >
+            EXIT
+          </button>
+        </div>
+
         <div
         className="absolute top-0 left-0 w-full h-full"
         style={{
@@ -204,7 +258,9 @@ export default function Game11() {
           backgroundSize: "100%",
           backgroundRepeat: "no-repeat",
           backgroundPosition: "center",
-        }}></div>
+        }}>
+          <div className='w-full h-full bg-black/30 backdrop-blur-sm'></div>
+        </div>
       </div>
     );
   }
@@ -212,15 +268,25 @@ export default function Game11() {
   // game win UI
   if (gameWin) {
     return (
-      <div className="w-full h-screen bg-white flex flex-col items-center justify-center">
-        <div className={`text-4xl font-bold mb-2 text-[#6FBCC4] ${pixelify.className} z-10`}>Victory</div>
-        <div className={`text-xl font-medium text-[#6FBCC4] ${pixelify.className} z-10`}> 恭喜你成功畢業！</div>
-        <button 
-          onClick={restartGame}
-          className={`px-8 py-4 bg-white text-[#6FBCC4] rounded-lg hover:bg-[#6FBCC4] hover:text-white transition-colors text-xl mt-8 ${pixelify.className} z-10`}
-        >
-          再玩一次
-        </button>
+      <div className="w-full h-screen bg-white flex flex-col items-center justify-center tracking-widest">
+        <div className={`text-6xl font-bold mb-2 text-gray-300 ${pixelify.className} z-10`}>Victory</div>
+        <div className={`text-2xl font-semibold text-gray-400 z-10`}> 恭喜你成功準時畢業</div>
+
+        <div className={`flex flex-row gap-8`}>
+          <button 
+            onClick={restartGame}
+            className={`text-gray-100 hover:text-gray-400 transition-colors text-xl mt-8 cursor-pointer ${pixelify.className} z-10`}
+          >
+            PLAY AGAIN
+          </button>
+          <button 
+            onClick={handleFinish}
+            className={`text-[#CD4447] hover:text-gray-400 transition-colors text-xl mt-8 cursor-pointer ${pixelify.className} z-10`}
+          >
+            EXIT
+          </button>
+        </div>
+        
         <div
         className="absolute top-0 left-0 w-full h-full"
         style={{
@@ -228,76 +294,62 @@ export default function Game11() {
           backgroundSize: "100%",
           backgroundRepeat: "no-repeat",
           backgroundPosition: "center",
-        }}></div>
+        }}>
+          <div className='w-full h-full bg-black/30 backdrop-blur-sm'></div>
+        </div>
       </div>
     );
   }
 
   // 決定要顯示哪張圖片
   const getPlayerImage = () => {
-    if (isJumping) return "/game11/girl.png";
-    if (isSliding) return "/game11/girlSlide.png";
-    return "/game11/girl.png";
+    if (isJumping) return "/game11/jump.png";
+    if (isSliding) return "/game11/slide.png";
+    return "/game11/parkour.gif";
   };
 
   return (
     <>
-    <div className="w-full h-screen bg-white relative">
-        <div
-        className="absolute top-0 left-0 w-full h-full"
-        style={{
-          backgroundImage: "url('/game11/bg.gif')",
-          backgroundSize: "100%",
-          backgroundRepeat: "no-repeat",
-          backgroundPosition: "center",
-        }}></div> 
-        <div className={`w-[200px] h-[50px] bg-blue-500 top-10 right-10 absolute text-center text-white pt-3 ${pixelify.className}`}>
-          畢業倒數天數: {timeLeft} 天
-        </div>
+    <div className="w-full h-screen bg-white relative flex items-start justify-center p-20">
+      <div
+      className="absolute top-0 left-0 w-full h-full"
+      style={{
+        backgroundImage: "url('/game11/bg.gif')",
+        backgroundSize: "100%",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "center",
+      }}>
+        <div className='w-full h-full bg-black/30 backdrop-blur-sm'></div>
+      </div> 
+      <div className={`font-semibold text-xl text-center tracking-widest text-gray-200 z-10`}>
+        畢業倒數天數: {timeLeft} 天
+      </div>
 
-        <div className="w-[1400px] h-[450px] absolute top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2">
+      <div className="w-[1250px] h-[450px] absolute top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2">
+        <Image 
+          ref={playerRef}
+          src={getPlayerImage()}
+          alt="girl" 
+          width={100}
+          height={100}
+          className={`w-[150px] h-auto bottom-[0px] absolute ${isJumping ? 'jump-animation' : ''}`} 
+        />
+
+        {obstacles.map(obstacle => (
           <Image 
-            ref={playerRef}
-            src={getPlayerImage()}
-            alt="girl" 
-            width={100}
-            height={100}
-            className={`w-[100px] h-auto bottom-[0px] absolute ${isJumping ? 'jump-animation' : ''}`} 
+            key={obstacle.id}
+            src={obstacle.isTop ? "/game11/ufo.png" : "/game11/recycle.png"}
+            alt="obstacle" 
+            width={80}
+            height={80}
+            className={`w-[80px] h-auto ${obstacle.isTop ? 'bottom-[138px]' : 'bottom-[0px]'} absolute obstacle`}
+            style={{ left: `${obstacle.left}%` }}
           />
-
-          {obstacles1.map(obstacle => (
-            <Image 
-              key={obstacle.id}
-              src="/game11/pc.jpg"
-              alt="pc" 
-              width={80}
-              height={80}
-              className={`w-[80px] h-auto bottom-[90px] left-[1115px] border-2 border-red-500 absolute block-animation obstacle`} 
-            />
-          ))}
-          
-          {obstacles2.map(obstacle => (
-            <Image 
-              key={obstacle.id}
-              src="/game11/pc.jpg"
-              alt="pc" 
-              width={80}
-              height={80}
-              className={`w-[80px] h-auto bottom-[0px] left-[1115px] absolute block-animation obstacle`} 
-            />
-          ))}
-        </div>
+        ))}
+      </div>
     </div>
     </>
   );
 }
 
 
-  // return (
-  //   <div className="p-8">
-  //     <h1 className="text-xl font-semibold">Game 11 運動遊戲</h1>
-  //     <button className="mt-4 px-4 py-2 bg-red-300 rounded" onClick={handleFinish}>
-  //       完成遊戲
-  //     </button>
-  //   </div>
-  // );
