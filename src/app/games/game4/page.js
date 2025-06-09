@@ -59,8 +59,8 @@ export default function PizzaGame() {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (gameOver || showIntro) return;
-      if (e.key === "ArrowLeft") setPlayerX((x) => Math.max(0, x - 20));
-      if (e.key === "ArrowRight") setPlayerX((x) => Math.min(550, x + 20));
+      if (e.key === "ArrowLeft") setPlayerX((x) => Math.max(0, x - 30));
+      if (e.key === "ArrowRight") setPlayerX((x) => Math.min(550, x + 30));
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
