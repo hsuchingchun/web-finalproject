@@ -136,7 +136,7 @@ export default function Game9() {
               const arrowCenterY = a.y + arrowHeight / 2;
               const judgmentDistance = getJudgmentDistance(zoneRect);
               if (arrowCenterY > zoneY + judgmentDistance && !a.hasPassedZone) {
-                setCenterFeedback("miss");
+                setCenterFeedback("Miss");
                 setTimeout(() => setCenterFeedback(null), 500);
                 return { ...a, status: "missed", hasPassedZone: true };
               }
@@ -220,11 +220,11 @@ export default function Game9() {
             if (dy <= judgmentDistance) {
               if (dy <= perfectDistance) {
                 scoreToAdd = 5;
-                feedbackType = "perfect";
+                feedbackType = "Perfect";
                 hitArrow = arrow;
               } else {
                 scoreToAdd = 3;
-                feedbackType = "good";
+                feedbackType = "Good";
                 hitArrow = arrow;
               }
               break;
@@ -232,7 +232,7 @@ export default function Game9() {
               arrowCenterY > zoneY + judgmentDistance &&
               !arrow.hasPassedZone
             ) {
-              feedbackType = "miss";
+              feedbackType = "Miss";
               setArrows((prev) =>
                 prev.map((a) =>
                   a.id === arrow.id
@@ -361,7 +361,7 @@ export default function Game9() {
               <Image
                 src={`/game9/${centerFeedback}.png`}
                 alt={centerFeedback}
-                width={centerFeedback === "perfect" ? 250 : 200}
+                width={centerFeedback === "Perfect" ? 250 : 200}
                 height={centerFeedback === "Perfect" ? 250 : 200}
               />
             </div>
