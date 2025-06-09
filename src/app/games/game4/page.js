@@ -55,6 +55,7 @@ export default function PizzaGame() {
     };
   }, []);
 
+  
   // 鍵盤移動
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -118,7 +119,7 @@ export default function PizzaGame() {
           const catchHeight = 350;
           const isCatchZone =
             pizzaBottom >= catchHeight - 10 && pizzaBottom <= catchHeight + 10;
-          const inCatchX = p.x > playerX - 20 && p.x < playerX + 100;
+          const inCatchX = p.x > playerX - 40 && p.x < playerX + 140;
           if (isCatchZone && inCatchX) {
             if (p.type === "meat") {
               setScore((s) => s + 5);
