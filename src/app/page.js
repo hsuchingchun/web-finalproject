@@ -22,6 +22,25 @@ export default function Home() {
     { title: "冰淇淋", type: "food" },
   ];
 
+  const gamePositions = {
+    exercise: [
+      { x: 250, y: 50 },      // 排球
+      { x: 450, y: 50 },    // 桌球
+      { x: 100, y: 300 },    // 射擊
+      { x: 300, y: 300 },  // 滑板
+      { x: 100, y: 600 },    // 跳舞
+      { x: 300, y: 600 },  // 跑酷
+    ],
+    food: [
+      { x: 850, y: 35 },    // 珍奶
+      { x: 1090, y: 40 },  // 披薩
+      { x: 1200, y: 230 },  // 啤酒
+      { x: 900, y: 550 },  // 串燒
+      { x: 1110, y: 550 },  // 涮涮鍋
+      { x: 1100, y: 360 }, // 冰淇淋
+    ]
+  };
+
   useEffect(() => {
     const stored = localStorage.getItem("status");
     if (stored) {
@@ -43,62 +62,47 @@ export default function Home() {
   const exerciseGames = gameList.filter((g) => g.type === "exercise");
 
   return (
-    <main className="p-8">
-      <div className="grid grid-cols-3 gap-8 items-start">
-        {/* 食物區 */}
-        <div>
-          <h2 className="text-lg font-semibold mb-2">🏃‍♂️ 運動健康身體好</h2>
-          <div className="flex flex-col gap-2">
-            {exerciseGames.map((game, i) => (
-              <Link
-                href={`/games/game${i * 2 + 1}`}
-                key={i}
-                className="bg-red-200 hover:bg-red-300 p-3 rounded text-center"
-              >
-                {game.title}
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {/* 角色狀態區 */}
-        <div className="flex flex-col items-center">
-          {/* <div className="w-32 h-48 bg-gray-400 mb-4 rounded flex items-center justify-center text-white">
-            角色
-          </div> */}
-          <div>
-            <img
-              src={
-                status < 0 ? "/ms1.png" : status > 0 ? "/ms3.png" : "/ms2.png"
-              }
-              alt="角色圖片"
-              style={{ height: "300px" }}
-            />
-          </div>
-          <h1 className="text-xl font-bold mb-2">狀態：{status}</h1>
-          <button
-            onClick={handleReset}
-            className="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded"
+    <main className="h-screen w-screen bg-cover bg-center bg-no-repeat relative" style={{ backgroundImage: "url('/mainbg.png')" }}>
+      <div className="relative h-screen">
+        {exerciseGames.map((game, i) => (
+          <Link
+            href={`/games/game${i * 2 + 1}`}
+            key={i}
+            className="absolute group flex items-center gap-2"
+            style={{
+              left: `${gamePositions.exercise[i].x}px`,
+              top: `${gamePositions.exercise[i].y}px`
+            }}
           >
-            🔄 重新開始
-          </button>
-        </div>
+            <div className="w-[150px] h-[150px] flex items-center justify-center">
+              <img
+                src={`/game${i * 2 + 1}_entrance.png`}
+                alt={game.title}
+                className="w-full h-full rounded-lg transition-transform duration-300 group-hover:scale-110 object-contain"
+              />
+            </div>
+          </Link>
+        ))}
 
-        {/* 運動區 */}
-        <div>
-          <h2 className="text-lg font-semibold mb-2">🍽️ 美食多吃沒煩惱</h2>
-          <div className="flex flex-col gap-2">
-            {foodGames.map((game, i) => (
-              <Link
-                href={`/games/game${(i + 1) * 2}`}
-                key={i}
-                className="bg-green-200 hover:bg-green-300 p-3 rounded text-center"
-              >
-                {game.title}
-              </Link>
-            ))}
-          </div>
-        </div>
+        {foodGames.map((game, i) => (
+          <Link
+            href={`/games/game${(i + 1) * 2}`}
+            key={i}
+            className="absolute group flex items-center gap-2"
+            style={{
+              left: `${gamePositions.food[i].x}px`,
+              top: `${gamePositions.food[i].y}px`
+            }}
+          >
+            <div className="w-[250px] h-[250px] flex items-center justify-center">
+              <img
+                src={`/game${(i + 1) * 2}_entrance.png`}
+                alt={game.title}
+                className="w-full h-full rounded-lg transition-transform duration-300 group-hover:scale-110 object-contain"
+              />
+            </div>
+          </Link>
+        ))}
       </div>
     </main>
   );
