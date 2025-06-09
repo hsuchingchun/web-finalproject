@@ -104,6 +104,25 @@ export default function Home() {
           </Link>
         ))}
       </div>
+      {/* 角色狀態區 */}
+      <div className="absolute top-4/5 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+        <div>
+          <img
+            src={`/role${status}.png`}
+            alt="角色圖片"
+            style={{ height: "150px" }}
+          />
+        </div>
+      </div>
+      <div className="flex justify-center items-center absolute top-2 left-2 bg-white/90 p-3 rounded-lg shadow-lg">
+        <div className="text-xl font-bold">體脂：{status}</div>
+        <button
+          onClick={handleReset}
+          className="ml-5 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
+        >
+          🔄 重新開始
+        </button>
+      </div>
     </main>
   );
 }
