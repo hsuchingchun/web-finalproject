@@ -172,6 +172,11 @@ export default function Game7() {
     e.preventDefault();
     const data = JSON.parse(e.dataTransfer.getData("text/plain"));
     
+    // 如果目標格子已經有拼圖，則不允許放置
+    if (bins[binIdx] !== null && data.source === "tray") {
+      return;
+    }
+
     if (data.source === "tray") {
       setPiecesInTray(prev => prev.filter(p => p.id !== data.piece.id));
       setBins(prev => {
@@ -244,6 +249,27 @@ export default function Game7() {
 
   return (
     <main className="relative flex flex-col items-center justify-center min-h-screen bg-[#f0e6d2] p-4">
+       <button
+        onClick={() => router.push("/")}
+        className="fixed top-5 left-5 z-[1000] px-5 py-2 bg-white/60 text-base font-bold cursor-pointer rounded-4xl"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="icon icon-tabler icons-tabler-outline icon-tabler-chevrons-left "
+        >
+          <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+          <path d="M11 7l-5 5l5 5" />
+          <path d="M17 7l-5 5l5 5" />
+        </svg>
+      </button>
       {/* YouTube 播放器（隱藏） */}
       <div className="hidden">
         <YouTube
