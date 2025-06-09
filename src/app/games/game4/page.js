@@ -55,6 +55,7 @@ export default function PizzaGame() {
     };
   }, []);
 
+  
   // 鍵盤移動
   useEffect(() => {
     const handleKeyDown = (e) => {
