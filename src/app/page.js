@@ -162,7 +162,7 @@ export default function Home() {
     // 角色中心點
     const characterCenterAbsX = window.innerWidth / 2 + position.x;
     const characterCenterAbsY = window.innerHeight * 0.8 + position.y;
-    const proximityThreshold = 150; // 接近遊戲
+    const proximityThreshold = 120; // 接近遊戲
 
     let currentClosestGame = null;
     let minDistance = Infinity;
