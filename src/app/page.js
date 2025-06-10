@@ -411,7 +411,16 @@ export default function Home() {
       {/* 介紹訊息彈出框 */}
       {showIntroMessage && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[10001] p-4">
-          <div className="bg-gradient-to-br from-white to-blue-50 w-full max-w-2xl p-12 rounded-xl shadow-2xl text-center border-4 border-blue-600">
+          <div className="bg-gradient-to-br from-white to-blue-50 w-full max-w-2xl p-12 rounded-xl shadow-2xl text-center border-4 border-blue-600 relative">
+            {/* 右上角 X 按鈕 */}
+            <button
+              className="absolute top-4 right-4 text-3xl text-gray-400 hover:text-red-500 font-bold z-50"
+              onClick={() => setShowIntroMessage(false)}
+              aria-label="關閉"
+              tabIndex={0}
+            >
+              ×
+            </button>
             <h2 className="text-3xl font-extrabold mb-6 text-blue-800 leading-tight">
               菸酒生馬拉松樂園：論文地獄生存戰！
             </h2>
@@ -444,10 +453,36 @@ export default function Home() {
                 （每成功通關一項運動挑戰：體態 -1）享用療癒系美食撫慰被論文摧殘的靈魂，但要小心腰圍爆擊！（每成功通關一項美食挑戰：體態 +1）
               </p>
             )}
-            <p className="text-xl font-bold text-gray-800 mt-10">
-               按下 <span className="font-extrabold text-green-700">{introPage === 1 ? '空白鍵' : introPage === 2 ? '空白鍵' : 'Enter鍵'}</span> {introPage === 1 ? '繼續閱讀' : introPage === 2 ? '繼續閱讀' : '進入樂園'}
-            </p>
-            <div className="pt-5 text-center text-2xl text-gray-600">({introPage}/3)</div>
+            {/* 頁數顯示 */}
+            <div className="pt-2 pb-2 text-center text-2xl text-gray-600">({introPage}/3)</div>
+            {/* 按鈕區塊 */}
+            <div className="flex justify-between mt-4">
+              {/* 左側按鈕（第二、三頁才有） */}
+              {introPage > 1 ? (
+                <button
+                  className="px-6 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg font-bold text-lg"
+                  onClick={() => setIntroPage(introPage - 1)}
+                >
+                  上一頁
+                </button>
+              ) : <div></div>}
+              {/* 右側按鈕 */}
+              {introPage < 3 ? (
+                <button
+                  className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-bold text-lg"
+                  onClick={() => setIntroPage(introPage + 1)}
+                >
+                  下一頁
+                </button>
+              ) : (
+                <button
+                  className="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold text-lg"
+                  onClick={() => setShowIntroMessage(false)}
+                >
+                  開始遊戲
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
