@@ -329,21 +329,22 @@ export default function Home() {
         ))}
       </div>
       {/* 角色狀態區 */}
-      <div 
-        className="absolute top-[700px] left-[850px] transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition-transform duration-100 z-[9999] pointer-events-none"
-        style={{ 
-          transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px))`
-        }}
-      >
-        <div className="pointer-events-none">
-          <img
-            src={`/role${status}.png`}
-            alt="角色圖片"
-            style={{ height: "150px" }}
-            className="pointer-events-none"
-          />
+        <div 
+          className="absolute top-[700px] left-[850px] transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition-transform duration-100 z-[9999] pointer-events-none"
+          style={{ 
+            transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px))`
+          }}
+        >
+          <div className="pointer-events-none">
+            <img
+              // 圖片路徑，最多只到 -5 / +5
+              src={`/role${Math.max(-5, Math.min(5, status))}.png`}
+              alt="角色圖片"
+              style={{ height: "150px" }}
+              className="pointer-events-none"
+            />
+          </div>
         </div>
-      </div>
       <div className="flex flex-col justify-center items-center absolute top-2 left-2 bg-white/90 p-3 rounded-lg shadow-lg z-[9999]">
         <div className="text-xl font-bold">體態：{status}</div>
         <button
