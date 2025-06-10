@@ -209,7 +209,7 @@ export default function IceCreamCatchGame() {
             setGameOver(true);
             return [];
           }
-          if (nextScore >= 40) {
+          if (nextScore >= 30) {
             setScore(nextScore);
             setGameFinish(true);
             return [];
@@ -567,13 +567,13 @@ export default function IceCreamCatchGame() {
             >
               <span style={circleStyle}>1</span>
               <span>
-                讓玩家吃足夠冰淇淋，吃到分數40分就心滿意足遊戲結束，過程中會有
+                這是一個讓你吃冰淇淋吃到飽的遊戲，吃到分數30分就心滿意足遊戲結束，過程中會有
                 <img
                   src="/game12/bittermelon.png"
                   alt="苦瓜"
                   style={{ ...iconStyle, margin: "0 0px 0px 4px" }}
                 />
-                苦瓜，小心不要讓他吃到了！
+                苦瓜，小心不要吃到了！
               </span>
             </div>
 
@@ -586,7 +586,7 @@ export default function IceCreamCatchGame() {
             >
               <span style={circleStyle}>2</span>
               <span>
-                只要玩家沒吃到冰淇淋，或是吃到苦瓜，都會累積不滿意分數
+                只要你沒吃到冰淇淋，或是吃到苦瓜，都會累積不滿意分數
                 <img
                   src="/game12/player_angry.png"
                   alt="不滿意"
@@ -811,13 +811,13 @@ export default function IceCreamCatchGame() {
             >
               <span style={circleStyle}>1</span>
               <span>
-                讓玩家吃足夠冰淇淋，吃到分數40分就心滿意足遊戲結束，過程中會有
+                這是一個讓你吃冰淇淋吃到飽的遊戲，吃到分數30分就心滿意足遊戲結束，過程中會有
                 <img
                   src="/game12/bittermelon.png"
                   alt="苦瓜"
                   style={{ ...iconStyle, margin: "0 0px 0px 4px" }}
                 />
-                苦瓜，小心不要讓他吃到了！
+                苦瓜，小心不要吃到了！
               </span>
             </div>
 
@@ -830,7 +830,7 @@ export default function IceCreamCatchGame() {
             >
               <span style={circleStyle}>2</span>
               <span>
-                只要玩家沒吃到冰淇淋，或是吃到苦瓜，都會累積不滿意分數
+                只要你沒吃到冰淇淋，或是吃到苦瓜，都會累積不滿意分數
                 <img
                   src="/game12/player_angry.png"
                   alt="不滿意"
