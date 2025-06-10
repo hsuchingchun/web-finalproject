@@ -365,19 +365,33 @@ export default function Home() {
       {activeGame && (
         <div className="fixed inset-0 bg-black/20 bg-opacity-70 flex items-center justify-center z-[10000] border-2 ">
           <div className="bg-white w-[300px] p-8 rounded-lg shadow-xl text-center border-2 border-blue-500-100">
-            <h2 className="text-2xl font-bold mb-4 tracking-wider">要挑戰{activeGame.title}嗎？</h2>
-            <p className="text-lg mb-6 tracking-wider">鍵盤按下空白鍵進入遊戲</p>
-            <button
-              onClick={() => {
-                setActiveGame(null);
-                if (activeGame) { 
-                  setDismissedGameTitle(activeGame.title);
-                }
-              }} 
-              className="px-6 py-3 bg-red-500 text-white rounded-lg transition-colors duration-200 shadow-md font-bold"
-            >
-              鍵盤按 esc 離開
-            </button>
+            <h2 className="text-2xl font-bold mb-4 tracking-wider">來挑戰{activeGame.title}吧！</h2>
+            <p className="text-lg mb-6 tracking-wider">要進入這個遊戲嗎？</p>
+            <div className="flex justify-between mt-6">
+              {/* 離開按鈕（左） */}
+              <button
+                onClick={() => {
+                  setActiveGame(null);
+                  if (activeGame) { 
+                    setDismissedGameTitle(activeGame.title);
+                  }
+                }}
+                className="px-6 py-3 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg transition-colors duration-200 shadow-md font-bold"
+              >
+                我再看看
+              </button>
+              {/* 進入遊戲按鈕（右） */}
+              <button
+                onClick={() => {
+                  localStorage.setItem("statusBeforeGame", status.toString());
+                  localStorage.setItem("justReturnedFromGame", "true");
+                  window.location.href = activeGame.href;
+                }}
+                className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200 shadow-md font-bold"
+              >
+                進入遊戲
+              </button>
+            </div>
           </div>
         </div>
       )}
