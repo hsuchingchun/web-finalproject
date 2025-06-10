@@ -142,7 +142,3 @@ body {
     @apply bg-background text-foreground;
   }
 }
-
-html, body, * {
-  cursor: url('/mouse.png') 0 0, auto;
-}

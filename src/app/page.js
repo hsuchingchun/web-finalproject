@@ -1,6 +1,5 @@
 "use client";
 import Link from "next/link";
-import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import YouTube from 'react-youtube';
 
@@ -15,9 +14,7 @@ export default function Home() {
   const [showChallengeSuccess, setShowChallengeSuccess] = useState(false);
   const [showNoChangeMessage, setShowNoChangeMessage] = useState(false);
   const [previousStatus, setPreviousStatus] = useState(0);
-  const isFirstRender = useRef(true);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
-  const [player, setPlayer] = useState(null);
   const playerRef = useRef(null);
 
   const gameList = [
@@ -64,26 +61,27 @@ export default function Home() {
     setReady(true);
 
     const handleKeyDown = (e) => {
-      // 如果介紹訊息彈出框顯示，且按下對應的鍵，則關閉訊息框或進入下一頁
       if (showIntroMessage) {
-        e.preventDefault(); // 防止頁面滾動
-        if (introPage === 1 && e.key === ' ') {
-          setIntroPage(2);
-        } else if (introPage === 2 && e.key === ' ') {
-          setIntroPage(3);
-        } else if (introPage === 3 && e.key === 'Enter') {
-          setShowIntroMessage(false);
-          localStorage.setItem("hasSeenIntro", "true");
-        }
+        e.preventDefault();
         return;
       }
 
-      // 如果有活躍的遊戲彈出框，且按下空白鍵，則進入遊戲
+      // 按下空白鍵，則進入遊戲
       if (activeGame && e.key === ' ') {
-        e.preventDefault(); // 防止頁面滾動
+        e.preventDefault();
         localStorage.setItem("statusBeforeGame", status.toString());
         localStorage.setItem("justReturnedFromGame", "true");
         window.location.href = activeGame.href;
+        return;
+      }
+
+      // 按下 Esc 鍵，則取消遊戲
+      if (activeGame && e.key === 'Escape') {
+        e.preventDefault();
+        setActiveGame(null);
+        if (activeGame) {
+          setDismissedGameTitle(activeGame.title);
+        }
         return;
       }
 
@@ -130,30 +128,6 @@ export default function Home() {
 
     setReady(true);
   }, []);
-
-  useEffect(() => {
-    const justReturned = localStorage.getItem("justReturnedFromGame");
-    const statusBeforeGame = localStorage.getItem("statusBeforeGame");
-
-    console.log("useEffect [status] triggered.");
-    console.log("justReturnedFromGame:", justReturned);
-    console.log("statusBeforeGame:", statusBeforeGame);
-    console.log("Current status:", status);
-
-    if (justReturned === "true") {
-      localStorage.removeItem("justReturnedFromGame"); // Clear the flag immediately
-      localStorage.removeItem("statusBeforeGame"); // Clear the status before game flag
-
-      if (statusBeforeGame !== null && parseInt(statusBeforeGame) !== status) {
-        console.log("Status changed! Setting showChallengeSuccess to true.");
-        setShowChallengeSuccess(true);
-      } else {
-        console.log("Status did not change. Setting showNoChangeMessage to true.");
-        setShowNoChangeMessage(true);
-      }
-    }
-    setPreviousStatus(status);
-  }, [status]);
 
   // 角色是否靠近遊戲攤位
   useEffect(() => {
@@ -244,11 +218,11 @@ export default function Home() {
       modestbranding: 1,
       rel: 0,
       loop: 1,
-      playlist: 'IfkdMZYIsi8'
+      playlist: '-juq36IACEI'
     },
   };
 
-  // 處理 YouTube 播放器準備就緒
+  // YouTube
   const onReady = (event) => {
     playerRef.current = event.target;
     event.target.setVolume(50);
@@ -256,7 +230,7 @@ export default function Home() {
     setIsMusicPlaying(true);
   };
 
-  // 處理播放器錯誤
+  // 播放器錯誤
   const onError = (error) => {
     console.error('YouTube Player Error:', error);
   };
@@ -282,7 +256,7 @@ export default function Home() {
   };
 
   return (
-    <main className="h-screen w-screen bg-cover bg-center bg-no-repeat relative overflow-hidden" style={{ backgroundImage: "url('/mainbg.png')" }}>
+    <main className="h-screen w-screen bg-cover bg-center bg-no-repeat relative overflow-hidden" style={{ backgroundImage: "url('/mainbg.png')",cursor: "url('/mouse.png') 0 0, auto" }}>
       <div className="hidden">
         <YouTube
           videoId="-juq36IACEI"
@@ -392,17 +366,17 @@ export default function Home() {
         <div className="fixed inset-0 bg-black/20 bg-opacity-70 flex items-center justify-center z-[10000] border-2 ">
           <div className="bg-white w-[300px] p-8 rounded-lg shadow-xl text-center border-2 border-blue-500-100">
             <h2 className="text-2xl font-bold mb-4 tracking-wider">要挑戰{activeGame.title}嗎？</h2>
-            <p className="text-lg mb-6 tracking-wider">鍵盤按下空白鍵進入</p>
+            <p className="text-lg mb-6 tracking-wider">鍵盤按下空白鍵進入遊戲</p>
             <button
               onClick={() => {
                 setActiveGame(null);
-                if (activeGame) { // 只有當 activeGame 存在時才記錄
+                if (activeGame) { 
                   setDismissedGameTitle(activeGame.title);
                 }
-              }} // 點擊取消按鈕隱藏彈出框並記錄被取消的遊戲
-              className="px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors duration-200 shadow-md"
+              }} 
+              className="px-6 py-3 bg-red-500 text-white rounded-lg transition-colors duration-200 shadow-md font-bold"
             >
-              取消
+              鍵盤按 esc 離開
             </button>
           </div>
         </div>
@@ -414,7 +388,7 @@ export default function Home() {
           <div className="bg-gradient-to-br from-white to-blue-50 w-full max-w-2xl p-12 rounded-xl shadow-2xl text-center border-4 border-blue-600 relative">
             {/* 右上角 X 按鈕 */}
             <button
-              className="absolute top-4 right-4 text-3xl text-gray-400 hover:text-red-500 font-bold z-50"
+              className="absolute top-4 right-4 text-3xl text-gray-400 hover:text-red-500 font-bold z-[10002]"
               onClick={() => setShowIntroMessage(false)}
               aria-label="關閉"
               tabIndex={0}
@@ -459,28 +433,31 @@ export default function Home() {
             <div className="flex justify-between mt-4">
               {/* 左側按鈕（第二、三頁才有） */}
               {introPage > 1 ? (
-                <button
-                  className="px-6 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg font-bold text-lg"
+                <div
+                  className="px-6 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg font-bold text-lg z-[10002]"
                   onClick={() => setIntroPage(introPage - 1)}
                 >
                   上一頁
-                </button>
+                </div>
               ) : <div></div>}
               {/* 右側按鈕 */}
               {introPage < 3 ? (
-                <button
-                  className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-bold text-lg"
+                <div
+                  className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-bold text-lg z-[10002]"
                   onClick={() => setIntroPage(introPage + 1)}
                 >
                   下一頁
-                </button>
+                </div>
               ) : (
-                <button
-                  className="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold text-lg"
-                  onClick={() => setShowIntroMessage(false)}
+                <div
+                  className="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold text-lg z-[10002]"
+                  onClick={() => {
+                    setShowIntroMessage(false);
+                    localStorage.setItem("hasSeenIntro", "true");
+                  }}
                 >
                   開始遊戲
-                </button>
+                </div>
               )}
             </div>
           </div>
